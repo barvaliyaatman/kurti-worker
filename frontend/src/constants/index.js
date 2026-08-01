@@ -51,6 +51,7 @@ export const USER_ROLES = {
 };
 
 export const NAVIGATION_ITEMS = [
+  // Super Admin Items
   {
     id: 'super_admin_dashboard',
     label: 'Dashboard',
@@ -58,6 +59,7 @@ export const NAVIGATION_ITEMS = [
     icon: 'Home',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: true,
+    category: 'Dashboard',
   },
   {
     id: 'super_admin_companies',
@@ -66,6 +68,7 @@ export const NAVIGATION_ITEMS = [
     icon: 'Building2',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: true,
+    category: 'Management',
   },
   {
     id: 'super_admin_owners',
@@ -74,6 +77,7 @@ export const NAVIGATION_ITEMS = [
     icon: 'ShieldCheck',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: true,
+    category: 'Management',
   },
   {
     id: 'super_admin_users',
@@ -82,6 +86,7 @@ export const NAVIGATION_ITEMS = [
     icon: 'Users',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: true,
+    category: 'Management',
   },
   {
     id: 'super_admin_settings',
@@ -90,6 +95,7 @@ export const NAVIGATION_ITEMS = [
     icon: 'Settings',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: false,
+    category: 'Settings',
   },
   {
     id: 'super_admin_audit_logs',
@@ -98,7 +104,10 @@ export const NAVIGATION_ITEMS = [
     icon: 'Activity',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: false,
+    category: 'Security',
   },
+
+  // Owner/Manager/Cutting Master Items
   {
     id: 'home',
     label: 'Dashboard',
@@ -106,87 +115,88 @@ export const NAVIGATION_ITEMS = [
     icon: 'Home',
     allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'],
     mobileBottom: true,
+    category: 'Dashboard',
   },
   {
     id: 'job_cards',
     label: 'Job Cards',
     path: ROUTES.JOB_CARDS,
     icon: 'FileText',
-    badge: 'View Only',
     allowedRoles: ['OWNER', 'MANAGER'],
     mobileBottom: true,
-  },
-  {
-    id: 'employees',
-    label: 'Employees Master',
-    path: ROUTES.EMPLOYEES,
-    icon: 'Users',
-    badge: 'Workforce',
-    allowedRoles: ['OWNER'],
-    mobileBottom: true,
+    category: 'Production',
   },
   {
     id: 'cutting',
     label: 'Cutting Queue',
     path: ROUTES.CUTTING,
     icon: 'Scissors',
-    badge: 'Cutting',
     allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'],
     mobileBottom: true,
+    category: 'Production',
   },
   {
     id: 'assignments',
     label: 'Bundle Assignment',
     path: '/assignments',
     icon: 'CheckSquare',
-    badge: 'Stitching',
     allowedRoles: ['OWNER', 'MANAGER'],
     mobileBottom: true,
+    category: 'Production',
+  },
+  {
+    id: 'employees',
+    label: 'Employees Master',
+    path: ROUTES.EMPLOYEES,
+    icon: 'Users',
+    allowedRoles: ['OWNER'],
+    mobileBottom: true,
+    category: 'Workforce',
   },
   {
     id: 'salary',
     label: 'Salary & Payroll',
     path: ROUTES.SALARY,
     icon: 'Banknote',
-    badge: 'Payroll',
     allowedRoles: ['OWNER', 'MANAGER'],
     mobileBottom: false,
+    category: 'Workforce',
   },
   {
     id: 'advances_payments',
     label: 'Advances & Ledger',
     path: ROUTES.ADVANCES_PAYMENTS,
     icon: 'CreditCard',
-    badge: 'Ledger',
     allowedRoles: ['OWNER', 'MANAGER'],
     mobileBottom: false,
+    category: 'Workforce',
   },
   {
     id: 'reports',
     label: 'Reports & Analytics',
     path: ROUTES.REPORTS,
     icon: 'BarChart3',
-    badge: 'Reports',
     allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'],
     mobileBottom: false,
+    category: 'Reports',
   },
   {
     id: 'settings',
     label: 'System Settings',
     path: ROUTES.SETTINGS,
     icon: 'Settings',
-    badge: 'Config',
     allowedRoles: ['OWNER'],
     mobileBottom: false,
+    category: 'Settings',
   },
   {
     id: 'archive',
     label: 'Archive / Trash',
     path: ROUTES.ARCHIVE,
     icon: 'Trash2',
-    badge: 'Safe Delete',
     allowedRoles: ['OWNER'],
     mobileBottom: false,
+    category: 'Archive',
   },
   {
     id: 'profile',
@@ -195,6 +205,7 @@ export const NAVIGATION_ITEMS = [
     icon: 'User',
     allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'],
     mobileBottom: false,
+    category: 'Profile',
   },
 ];
 

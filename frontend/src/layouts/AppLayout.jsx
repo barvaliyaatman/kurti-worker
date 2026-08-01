@@ -151,33 +151,52 @@ export const AppLayout = () => {
         </div>
 
         {/* Navigation Items */}
-        <div className="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto">
-          {filteredNavItems.map((item) => {
-            const Icon = ICON_MAP[item.icon] || Home;
-            const isActive = location.pathname === item.path;
+        <div className="flex-1 py-4 px-3 space-y-4 overflow-y-auto">
+          {[
+            'Dashboard',
+            'Management',
+            'Security',
+            'Production',
+            'Workforce',
+            'Reports',
+            'Settings',
+            'Archive',
+            'Profile'
+          ].map((cat) => {
+            const items = filteredNavItems.filter((i) => i.category === cat);
+            if (items.length === 0) return null;
 
             return (
-              <button
-                key={item.label}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  'w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 group relative',
-                  isActive
-                    ? 'bg-[#384CF0] text-white shadow-lg shadow-indigo-500/25 font-bold'
-                    : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100'
-                )}
-                title={sidebarCollapsed ? item.label : undefined}
-              >
-                <Icon className={cn('w-5 h-5 shrink-0', isActive ? 'text-white' : 'text-slate-400 group-hover:text-white')} />
+              <div key={cat} className="space-y-1">
                 {!sidebarCollapsed && (
-                  <span className="truncate flex-1 text-left text-xs">{item.label}</span>
+                  <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3.5 mb-1.5 mt-2">
+                    {cat}
+                  </div>
                 )}
-                {!sidebarCollapsed && item.badge && (
-                  <span className="text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-2 py-0.5 rounded-full font-bold">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
+                {items.map((item) => {
+                  const Icon = ICON_MAP[item.icon] || Home;
+                  const isActive = location.pathname === item.path;
+
+                  return (
+                    <button
+                      key={item.label}
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        'w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group relative',
+                        isActive
+                          ? 'bg-[#384CF0] text-white shadow-lg shadow-indigo-500/25 font-bold'
+                          : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-100'
+                      )}
+                      title={sidebarCollapsed ? item.label : undefined}
+                    >
+                      <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-white' : 'text-slate-400 group-hover:text-white')} />
+                      {!sidebarCollapsed && (
+                        <span className="truncate flex-1 text-left text-xs">{item.label}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
@@ -283,35 +302,52 @@ export const AppLayout = () => {
               </div>
             </div>
 
-            <div className="space-y-1">
-              {filteredNavItems.map((item) => {
-                const Icon = ICON_MAP[item.icon] || Home;
-                const isActive = location.pathname === item.path;
+            <div className="space-y-4">
+              {[
+                'Dashboard',
+                'Management',
+                'Security',
+                'Production',
+                'Workforce',
+                'Reports',
+                'Settings',
+                'Archive',
+                'Profile'
+              ].map((cat) => {
+                const items = filteredNavItems.filter((i) => i.category === cat);
+                if (items.length === 0) return null;
 
                 return (
-                  <button
-                    key={item.label}
-                    onClick={() => {
-                      setMobileDrawerOpen(false);
-                      navigate(item.path);
-                    }}
-                    className={cn(
-                      'w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-colors',
-                      isActive
-                        ? 'bg-[#384CF0] text-white font-bold'
-                        : 'text-slate-700 hover:bg-slate-100'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5" />
-                      <span>{item.label}</span>
+                  <div key={cat} className="space-y-1">
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-1 mt-2">
+                      {cat}
                     </div>
-                    {item.badge && (
-                      <span className="text-[10px] bg-indigo-100 text-[#384CF0] px-2 py-0.5 rounded-full font-bold">
-                        {item.badge}
-                      </span>
-                    )}
-                  </button>
+                    {items.map((item) => {
+                      const Icon = ICON_MAP[item.icon] || Home;
+                      const isActive = location.pathname === item.path;
+
+                      return (
+                        <button
+                          key={item.label}
+                          onClick={() => {
+                            setMobileDrawerOpen(false);
+                            navigate(item.path);
+                          }}
+                          className={cn(
+                            'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors',
+                            isActive
+                              ? 'bg-[#384CF0] text-white font-bold'
+                              : 'text-slate-700 hover:bg-slate-100'
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-4 h-4 text-slate-400" />
+                            <span>{item.label}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 );
               })}
             </div>
