@@ -32,6 +32,7 @@ app.use(
 
 // API Routes setup
 app.use('/api', routes);
+app.use('/', routes); // Fail-safe fallback to support VITE_API_URL configuration without '/api' suffix
 
 // Root URL welcome / default health check route
 app.get('/', (_req, res) => {
