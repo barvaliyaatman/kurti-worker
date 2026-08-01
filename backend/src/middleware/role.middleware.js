@@ -10,6 +10,11 @@ export const authorizeRoles = (...allowedRoles) => {
       });
     }
 
+    // Super Admin has global access to all platform resources
+    if (req.user.role === 'SUPER_ADMIN') {
+      return next();
+    }
+
     if (!allowedRoles.includes(req.user.role)) {
       return ApiResponse.error({
         res,
