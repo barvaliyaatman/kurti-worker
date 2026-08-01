@@ -1,0 +1,63 @@
+import { prisma } from '../prisma/prisma.js';
+import { ApiResponse } from '../utils/apiResponse.js';
+
+export const getBundles = async (req, res, next) => {
+  try {
+    const { search, status, sort = 'latest', page = 1, limit = 50 } = req.query;
+
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = parseInt(limit, 10) || 50;
+    const skip = (pageNum - 1) * limitNum;
+
+    const where = {};
+
+    if (status && status !== 'ALL') {
+      where.status = status.toUpperCase();
+    }
+
+    if (search && search.trim() !== '') {
+      const term = search.trim();
+      where.OR = [
+        { bundle_number: { contains: term, mode: 'insensitive' } },
+        { color: { contains: term, mode: 'insensitive' } },
+        { job_card: { job_card_number: { contains: term, mode: 'insensitive' } } },
+        { job_card: { design_code: { contains: term, mode: 'insensitive' } } },
+      ];
+    }
+
+    let orderBy = { created_at: 'desc' };
+    if (sort === 'oldest') {
+      orderBy = { created_at: 'asc' };
+    }
+
+    const [bundles, total] = await Promise.all([
+      prisma.bundle.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limitNum,
+        include: {
+          job_card: true,
+        },
+      }),
+      prisma.bundle.count({ where }),
+    ]);
+
+    return ApiResponse.success({
+      res,
+      statusCode: 200,
+      message: 'Bundles retrieved successfully.',
+      data: {
+        bundles,
+        pagination: {
+          total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(total / limitNum),
+        },
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

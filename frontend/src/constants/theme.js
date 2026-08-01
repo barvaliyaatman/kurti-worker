@@ -1,0 +1,56 @@
+export const THEME = {
+  colors: {
+    brand: {
+      50: '#f0f4ff',
+      100: '#e0e9ff',
+      200: '#c7d7fe',
+      300: '#a4bcfd',
+      400: '#7a9bfc',
+      500: '#4f6bf8',
+      600: '#384cf0',
+      700: '#2c39dc',
+      800: '#262eb3',
+      900: '#242b8e',
+      950: '#151855',
+    },
+    factory: {
+      navy: '#0F172A',
+      card: '#FFFFFF',
+      bg: '#F8FAFC',
+      border: '#E2E8F0',
+      muted: '#64748B',
+      accent: '#2563EB',
+      success: '#10B981',
+      warning: '#F59E0B',
+      danger: '#EF4444',
+    },
+  },
+  status: {
+    active: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
+    inactive: { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-400' },
+    pending: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' },
+    completed: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+    draft: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
+    danger: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500' },
+  },
+  animations: {
+    fadeIn: {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: 0.2 },
+    },
+    slideUp: {
+      initial: { y: 20, opacity: 0 },
+      animate: { y: 0, opacity: 1 },
+      exit: { y: 20, opacity: 0 },
+      transition: { duration: 0.25, ease: 'easeOut' },
+    },
+    slideInRight: {
+      initial: { x: '100%' },
+      animate: { x: 0 },
+      exit: { x: '100%' },
+      transition: { duration: 0.3, ease: 'easeInOut' },
+    },
+  },
+};

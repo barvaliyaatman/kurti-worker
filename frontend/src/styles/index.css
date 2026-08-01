@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    background-color: #F8FAFC;
+    color: #0F172A;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .btn-touch {
+    @apply min-h-[48px] px-5 py-3 rounded-xl font-semibold transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 text-base shadow-sm;
+  }
+  
+  .btn-primary {
+    @apply btn-touch bg-brand-600 hover:bg-brand-700 text-white shadow-touch hover:shadow-lg active:bg-brand-800;
+  }
+
+  .btn-secondary {
+    @apply btn-touch bg-white border border-factory-border text-factory-navy hover:bg-slate-50 active:bg-slate-100;
+  }
+
+  .card-factory {
+    @apply bg-white rounded-2xl border border-factory-border shadow-card p-4 sm:p-6 transition-all duration-200;
+  }
+}
