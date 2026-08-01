@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { contextStorage } from '../utils/context.js';
 
 const FALLBACK_USERS = {
   'user-owner-001': {
@@ -67,6 +68,7 @@ export const authenticate = async (req, res, next) => {
           email: true,
           role: true,
           status: true,
+          company_id: true,
         },
       });
     } catch (_dbErr) {
@@ -76,6 +78,7 @@ export const authenticate = async (req, res, next) => {
         email: decoded.email,
         role: decoded.role,
         status: 'ACTIVE',
+        company_id: decoded.company_id || null,
       };
     }
 
@@ -96,6 +99,10 @@ export const authenticate = async (req, res, next) => {
     }
 
     req.user = user;
+    const store = contextStorage.getStore();
+    if (store) {
+      store.set('user', user);
+    }
     return next();
   } catch (error) {
     return next(error);

@@ -26,6 +26,22 @@ import ForbiddenPage from '../pages/ForbiddenPage.jsx';
 import ProtectedRoute from '../components/common/ProtectedRoute.jsx';
 import RoleRoute from '../components/common/RoleRoute.jsx';
 import { ROUTES } from '../constants/index.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { Navigate } from 'react-router-dom';
+
+import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard.jsx';
+import CompanyManagementPage from '../pages/super-admin/CompanyManagementPage.jsx';
+import OwnerManagementPage from '../pages/super-admin/OwnerManagementPage.jsx';
+import UserManagementPage from '../pages/super-admin/UserManagementPage.jsx';
+import SystemSettingsPage from '../pages/super-admin/SystemSettingsPage.jsx';
+
+const SuperAdminRedirect = () => {
+  const { user } = useAuth();
+  if (user?.role === 'SUPER_ADMIN') {
+    return <Navigate to="/super-admin/dashboard" replace />;
+  }
+  return <HomePage />;
+};
 
 export const AppRoutes = () => {
   return (
@@ -46,9 +62,46 @@ export const AppRoutes = () => {
       >
         <Route
           path={ROUTES.HOME}
+          element={<SuperAdminRedirect />}
+        />
+        {/* Super Admin Workspace Routes */}
+        <Route
+          path="/super-admin/dashboard"
           element={
-            <RoleRoute allowedRoles={['OWNER', 'MANAGER', 'CUTTING_MASTER']}>
-              <HomePage />
+            <RoleRoute allowedRoles={['SUPER_ADMIN']}>
+              <SuperAdminDashboard />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/super-admin/companies"
+          element={
+            <RoleRoute allowedRoles={['SUPER_ADMIN']}>
+              <CompanyManagementPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/super-admin/owners"
+          element={
+            <RoleRoute allowedRoles={['SUPER_ADMIN']}>
+              <OwnerManagementPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/super-admin/users"
+          element={
+            <RoleRoute allowedRoles={['SUPER_ADMIN']}>
+              <UserManagementPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/super-admin/settings"
+          element={
+            <RoleRoute allowedRoles={['SUPER_ADMIN']}>
+              <SystemSettingsPage />
             </RoleRoute>
           }
         />

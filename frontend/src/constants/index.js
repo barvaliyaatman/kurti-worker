@@ -35,15 +35,61 @@ export const ROUTES = {
   UNAUTHORIZED: '/unauthorized',
   FORBIDDEN: '/forbidden',
   COMING_SOON: '/coming-soon',
+  SUPER_ADMIN_DASHBOARD: '/super-admin/dashboard',
+  SUPER_ADMIN_COMPANIES: '/super-admin/companies',
+  SUPER_ADMIN_OWNERS: '/super-admin/owners',
+  SUPER_ADMIN_USERS: '/super-admin/users',
+  SUPER_ADMIN_SETTINGS: '/super-admin/settings',
 };
 
 export const USER_ROLES = {
+  SUPER_ADMIN: 'SUPER_ADMIN',
   OWNER: 'OWNER',
   MANAGER: 'MANAGER',
   CUTTING_MASTER: 'CUTTING_MASTER',
 };
 
 export const NAVIGATION_ITEMS = [
+  {
+    id: 'super_admin_dashboard',
+    label: 'Dashboard',
+    path: '/super-admin/dashboard',
+    icon: 'Home',
+    allowedRoles: ['SUPER_ADMIN'],
+    mobileBottom: true,
+  },
+  {
+    id: 'super_admin_companies',
+    label: 'Companies',
+    path: '/super-admin/companies',
+    icon: 'Building2',
+    allowedRoles: ['SUPER_ADMIN'],
+    mobileBottom: true,
+  },
+  {
+    id: 'super_admin_owners',
+    label: 'Owners',
+    path: '/super-admin/owners',
+    icon: 'ShieldCheck',
+    allowedRoles: ['SUPER_ADMIN'],
+    mobileBottom: true,
+  },
+  {
+    id: 'super_admin_users',
+    label: 'Users',
+    path: '/super-admin/users',
+    icon: 'Users',
+    allowedRoles: ['SUPER_ADMIN'],
+    mobileBottom: true,
+  },
+  {
+    id: 'super_admin_settings',
+    label: 'System Settings',
+    path: '/super-admin/settings',
+    icon: 'Settings',
+    allowedRoles: ['SUPER_ADMIN'],
+    mobileBottom: false,
+  },
   {
     id: 'home',
     label: 'Dashboard',

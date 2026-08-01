@@ -20,7 +20,8 @@ import {
   ChevronRight,
   Search,
   Sparkles,
-  Trash2
+  Trash2,
+  Building2
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useConfig } from '../contexts/ConfigContext.jsx';
@@ -43,6 +44,8 @@ const ICON_MAP = {
   Settings,
   CreditCard,
   Trash2,
+  Building2,
+  ShieldCheck,
 };
 
 const BREADCRUMB_MAP = {
@@ -57,6 +60,11 @@ const BREADCRUMB_MAP = {
   '/settings': 'Dynamic System Settings',
   '/archive': 'Safe Delete & Trash Archive',
   '/profile': 'User Profile',
+  '/super-admin/dashboard': 'System Administration Dashboard',
+  '/super-admin/companies': 'Company Tenant Registry',
+  '/super-admin/owners': 'Owner Accounts Management',
+  '/super-admin/users': 'Global User Registry',
+  '/super-admin/settings': 'Global System Settings',
 };
 
 export const AppLayout = () => {

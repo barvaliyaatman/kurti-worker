@@ -6,7 +6,16 @@ import routes from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { logger } from './utils/logger.js';
 
+import { contextStorage } from './utils/context.js';
+
 const app = express();
+
+// Initialize Context Storage Middleware
+app.use((req, res, next) => {
+  contextStorage.run(new Map(), () => {
+    next();
+  });
+});
 
 // Security Middlewares
 app.use(helmet());

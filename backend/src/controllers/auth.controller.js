@@ -102,6 +102,7 @@ export const login = async (req, res, next) => {
       id: user.id,
       email: user.email,
       role: user.role,
+      company_id: user.company_id,
     };
 
     const token = jwt.sign(tokenPayload, env.JWT_SECRET, {
@@ -114,6 +115,7 @@ export const login = async (req, res, next) => {
       email: user.email,
       role: user.role,
       status: user.status,
+      company_id: user.company_id,
       last_login: user.last_login || new Date(),
     };
 

@@ -14,8 +14,12 @@ import notificationRoutes from './notification.routes.js';
 import settingRoutes from './setting.routes.js';
 import garmentSizeRoutes from './garmentSize.routes.js';
 import archiveRoutes from './archive.routes.js';
+import superAdminRoutes from './superAdmin.routes.js';
 
 const router = Router();
+
+// Super Admin APIs
+router.use('/', superAdminRoutes);
 
 // Health Check API
 router.use('/health', healthRoutes);

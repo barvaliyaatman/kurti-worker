@@ -12,6 +12,7 @@ datasource db {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   OWNER
   MANAGER
   CUTTING_MASTER
@@ -60,6 +61,33 @@ enum AssignmentStatus {
   CANCELLED
 }
 
+model Company {
+  id           String   @id @default(uuid())
+  company_code String   @unique
+  company_name String
+  owner_name   String
+  phone        String
+  email        String
+  address      String?
+  logo         String?
+  status       String   @default("ACTIVE") // ACTIVE, SUSPENDED, INACTIVE
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  users         User[]
+  employees     Employee[]
+  job_cards     JobCard[]
+  bundles       Bundle[]
+  assignments   Assignment[]
+  advances      EmployeeAdvance[]
+  payments      EmployeePayment[]
+  notifications Notification[]
+  settings      SystemSetting[]
+  sizes         GarmentSize[]
+
+  @@map("companies")
+}
+
 model User {
   id            String     @id @default(uuid())
   full_name     String
@@ -68,9 +96,12 @@ model User {
   role          UserRole   @default(CUTTING_MASTER)
   status        UserStatus @default(ACTIVE)
   last_login    DateTime?
+  company_id    String?
+  company       Company?   @relation(fields: [company_id], references: [id], onDelete: Cascade)
   created_at    DateTime   @default(now())
   updated_at    DateTime   @updatedAt
 
+  @@index([company_id])
   @@map("users")
 }
 
@@ -82,6 +113,8 @@ model Employee {
   joining_date  DateTime
   status        EmployeeStatus @default(ACTIVE)
   notes         String?
+  company_id    String?
+  company       Company?       @relation(fields: [company_id], references: [id], onDelete: Cascade)
   is_deleted    Boolean        @default(false)
   deleted_at    DateTime?
   deleted_by    String?
@@ -93,6 +126,7 @@ model Employee {
   payments      EmployeePayment[]
 
   @@index([status, is_deleted])
+  @@index([company_id])
   @@map("employees")
 }
 
@@ -108,6 +142,8 @@ model JobCard {
   status          JobCardStatus   @default(CREATED)
   remarks         String?
   created_by      String?
+  company_id      String?
+  company         Company?        @relation(fields: [company_id], references: [id], onDelete: Cascade)
   is_deleted      Boolean         @default(false)
   deleted_at      DateTime?
   deleted_by      String?
@@ -120,6 +156,7 @@ model JobCard {
 
   @@index([status, is_deleted])
   @@index([due_date])
+  @@index([company_id])
   @@map("job_cards")
 }
 
@@ -164,6 +201,8 @@ model Bundle {
   assigned_sets  Int          @default(0)
   completed_sets Int          @default(0)
   status         BundleStatus @default(READY_FOR_ASSIGNMENT)
+  company_id     String?
+  company        Company?     @relation(fields: [company_id], references: [id], onDelete: Cascade)
   is_deleted     Boolean      @default(false)
   deleted_at     DateTime?
   deleted_by     String?
@@ -174,6 +213,7 @@ model Bundle {
   assignments    Assignment[]
 
   @@index([job_card_id, status, is_deleted])
+  @@index([company_id])
   @@map("bundles")
 }
 
@@ -187,6 +227,8 @@ model Assignment {
   status         AssignmentStatus @default(ASSIGNED)
   assigned_by    String
   remarks        String?
+  company_id     String?
+  company        Company?         @relation(fields: [company_id], references: [id], onDelete: Cascade)
   is_deleted     Boolean          @default(false)
   deleted_at     DateTime?
   deleted_by     String?
@@ -198,6 +240,7 @@ model Assignment {
   history        AssignmentHistory[]
 
   @@index([bundle_id, employee_id, status, is_deleted])
+  @@index([company_id])
   @@map("assignments")
 }
 
@@ -224,11 +267,14 @@ model EmployeeAdvance {
   reason       String?
   advance_date DateTime @default(now())
   created_by   String
+  company_id   String?
+  company      Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
   created_at   DateTime @default(now())
 
   employee     Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
 
   @@index([employee_id])
+  @@index([company_id])
   @@map("employee_advances")
 }
 
@@ -240,11 +286,14 @@ model EmployeePayment {
   reference_no String?
   payment_date DateTime @default(now())
   created_by   String
+  company_id   String?
+  company      Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
   created_at   DateTime @default(now())
 
   employee     Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
 
   @@index([employee_id])
+  @@index([company_id])
   @@map("employee_payments")
 }
 
@@ -258,32 +307,43 @@ model Notification {
   reference_id   String?
   user_role      String   @default("ALL")    // ALL, OWNER, MANAGER, CUTTING_MASTER
   is_read        Boolean  @default(false)
+  company_id     String?
+  company        Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
   @@index([user_role, is_read])
+  @@index([company_id])
   @@map("notifications")
 }
 
 model SystemSetting {
   id          String   @id @default(uuid())
-  key         String   @unique
+  key         String
   value       String
   category    String   @default("GENERAL") // COMPANY, FACTORY, EMPLOYEE, JOB_CARD, BUNDLE, SALARY, NOTIFICATION, ROLE
+  company_id  String?
+  company     Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
+  @@unique([company_id, key])
+  @@index([company_id])
   @@map("system_settings")
 }
 
 model GarmentSize {
   id            String   @id @default(uuid())
-  size_name     String   @unique
+  size_name     String
   display_order Int      @default(0)
   is_active     Boolean  @default(true)
+  company_id    String?
+  company       Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
+  @@unique([company_id, size_name])
   @@index([is_active, display_order])
+  @@index([company_id])
   @@map("garment_sizes")
 }
