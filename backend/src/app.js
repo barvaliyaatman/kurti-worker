@@ -33,6 +33,15 @@ app.use(
 // API Routes setup
 app.use('/api', routes);
 
+// Root URL welcome / default health check route
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    message: '🧵 Kurti Manufacturing Worker Management ERP API is Live',
+    health: '/api/health',
+  });
+});
+
 // 404 Route Handler
 app.use('*', (_req, res) => {
   res.status(404).json({
