@@ -4,7 +4,7 @@ import { createSystemNotification } from '../utils/notificationHelper.js';
 
 export const getAssignments = async (req, res, next) => {
   try {
-    const { search, status, employee_id, sort = 'latest', page = 1, limit = 50 } = req.query;
+    const { search, status, employee_id, page = 1, limit = 50 } = req.query;
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;

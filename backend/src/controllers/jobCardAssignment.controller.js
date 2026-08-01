@@ -3,7 +3,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
 
 export const getJobCardsForAssignment = async (req, res, next) => {
   try {
-    const { search, status, sort = 'latest', page = 1, limit = 50 } = req.query;
+    const { search, status, page = 1, limit = 50 } = req.query;
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;

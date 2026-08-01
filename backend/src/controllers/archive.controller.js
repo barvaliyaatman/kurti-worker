@@ -6,7 +6,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
  */
 export const getArchivedRecords = async (req, res, next) => {
   try {
-    const { type } = req.query; // 'job_cards', 'employees', 'bundles', or 'all'
+    // Optional: type can be fetched if needed: const { type } = req.query;
 
     const jobCards = await prisma.jobCard.findMany({
       where: { is_deleted: true },

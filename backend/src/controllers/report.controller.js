@@ -38,8 +38,6 @@ const getDateBounds = (timeFilter) => {
 
 export const getReportsDashboard = async (req, res, next) => {
   try {
-    const { timeFilter = 'ALL' } = req.query;
-    const dateQuery = getDateBounds(timeFilter);
 
     const now = new Date();
     const startOfToday = new Date(new Date().setHours(0, 0, 0, 0));
@@ -128,7 +126,7 @@ export const getReportsDashboard = async (req, res, next) => {
 
 export const getProductionReport = async (req, res, next) => {
   try {
-    const { timeFilter = 'ALL', search } = req.query;
+    const { timeFilter = 'ALL' } = req.query;
     const dateQuery = getDateBounds(timeFilter);
 
     const assignments = await prisma.assignment.findMany({

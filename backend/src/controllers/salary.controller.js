@@ -3,7 +3,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
 
 export const getPayrollDashboard = async (req, res, next) => {
   try {
-    const { search, status, month, page = 1, limit = 50 } = req.query;
+    const { search, status, page = 1, limit = 50 } = req.query;
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;
@@ -27,10 +27,6 @@ export const getPayrollDashboard = async (req, res, next) => {
 
     // Compute payroll metrics per employee
     const payrollRecords = employees.map((emp) => {
-      const completedAssignments = emp.assignments.filter((a) =>
-        ['COMPLETED', 'SALARY_PENDING'].includes(a.status)
-      );
-
       const completedPieces = emp.assignments.reduce(
         (sum, a) => sum + (a.completed_sets || 0),
         0
@@ -228,7 +224,7 @@ export const getEmployeeSalaryDetails = async (req, res, next) => {
 
 export const disburseSalaryPayment = async (req, res, next) => {
   try {
-    const { employee_id, amount, payment_mode, reference_no, remarks } = req.body;
+    const { employee_id, amount, payment_mode, reference_no } = req.body;
 
     const paymentAmount = parseFloat(amount);
     if (!paymentAmount || paymentAmount <= 0) {
@@ -274,7 +270,7 @@ export const disburseSalaryPayment = async (req, res, next) => {
 
 export const getSalaryHistory = async (req, res, next) => {
   try {
-    const { month, year } = req.query;
+    // Optional: month/year filters can be fetched if needed: const { month, year } = req.query;
 
     const payments = await prisma.employeePayment.findMany({
       orderBy: { payment_date: 'desc' },

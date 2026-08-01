@@ -11,7 +11,7 @@ async function testP013_5() {
 
     // 1. Create a Job Card to trigger automatic notification
     const randomJC = `JC-${Math.floor(10000 + Math.random() * 90000)}`;
-    const createRes = await fetch('http://localhost:5000/api/job-cards', {
+    await fetch('http://localhost:5000/api/job-cards', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

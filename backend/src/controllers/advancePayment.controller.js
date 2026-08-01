@@ -118,7 +118,7 @@ export const getAdvancesOverview = async (req, res, next) => {
 
 export const createAdvance = async (req, res, next) => {
   try {
-    const { employee_id, amount, reason, advance_date, remarks } = req.body;
+    const { employee_id, amount, reason, advance_date } = req.body;
 
     const advanceAmount = parseFloat(amount);
     if (!advanceAmount || advanceAmount <= 0) {
@@ -281,7 +281,7 @@ export const getPaymentsOverview = async (req, res, next) => {
 
 export const createPayment = async (req, res, next) => {
   try {
-    const { employee_id, amount, payment_mode, reference_no, payment_date, remarks } = req.body;
+    const { employee_id, amount, payment_mode, reference_no, payment_date } = req.body;
 
     const paymentAmount = parseFloat(amount);
     if (!paymentAmount || paymentAmount <= 0) {

@@ -57,8 +57,8 @@ async function getOwnerDashboard(req, res) {
       }),
     ]);
 
-  // Batch 3: Tables + Charts (5 queries)
-  const [recentJobCards, recentPayments, recentNotifications, jobCardStatusCounts, salaryTotals] =
+  // Batch 3: Tables + Charts (6 queries)
+  const [recentJobCards, recentPayments, recentNotifications, jobCardStatusCounts, salaryTotals, totalAdvanceAll] =
     await Promise.all([
       prisma.jobCard.findMany({
         where: { is_deleted: false },
@@ -86,29 +86,25 @@ async function getOwnerDashboard(req, res) {
       }),
       // Total salary paid (all time)
       prisma.employeePayment.aggregate({ _sum: { amount: true } }),
+      // Total advances (all time)
+      prisma.employeeAdvance.aggregate({ _sum: { amount: true } }),
     ]);
 
-  // Compute gross earned from assignments (sequential – single query)
-  const grossData = await prisma.assignment.aggregate({
-    _sum: { completed_sets: true },
-    where: { is_deleted: false, completed_sets: { gt: 0 } },
-  });
+  // Batch 4: grossStats, monthlyProduction, salaryTrend in parallel
+  const [grossStats, monthlyProduction, salaryTrend] = await Promise.all([
+    prisma.assignment.aggregate({
+      _sum: { completed_sets: true },
+      _avg: { stitching_rate: true },
+      where: { is_deleted: false, completed_sets: { gt: 0 } },
+    }),
+    getMonthlyProductionData(),
+    getMonthlySalaryTrend(),
+  ]);
 
-  // Get avg rate for gross estimate
-  const avgRate = await prisma.assignment.aggregate({
-    _avg: { stitching_rate: true },
-    where: { is_deleted: false, completed_sets: { gt: 0 } },
-  });
-
-  const totalGrossEarned = (grossData._sum.completed_sets || 0) * (avgRate._avg.stitching_rate || 110);
-  const totalAdvanceAll = await prisma.employeeAdvance.aggregate({ _sum: { amount: true } });
+  const totalGrossEarned = (grossStats._sum.completed_sets || 0) * (grossStats._avg.stitching_rate || 110);
   const totalPaid = salaryTotals._sum.amount || 0;
   const totalAdvGiven = totalAdvanceAll._sum.amount || 0;
   const pendingSalary = Math.max(0, totalGrossEarned - totalAdvGiven - totalPaid);
-
-  // Monthly production data (sequential to avoid connection pool)
-  const monthlyProduction = await getMonthlyProductionData();
-  const salaryTrend = await getMonthlySalaryTrend();
 
   return ApiResponse.success({
     res,
@@ -345,29 +341,48 @@ async function getCuttingMasterDashboard(req, res) {
 async function getMonthlyProductionData() {
   const months = [];
   const now = new Date();
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
+
+  // Fetch all assignments completed in the range in one query
+  const assignments = await prisma.assignment.findMany({
+    where: {
+      is_deleted: false,
+      status: { in: ['COMPLETED', 'SALARY_PENDING'] },
+      updated_at: { gte: sixMonthsAgo }
+    },
+    select: {
+      completed_sets: true,
+      updated_at: true
+    }
+  });
+
+  // Fetch all job cards created in the range in one query
+  const jobCards = await prisma.jobCard.findMany({
+    where: {
+      is_deleted: false,
+      created_at: { gte: sixMonthsAgo }
+    },
+    select: {
+      created_at: true
+    }
+  });
 
   for (let i = 5; i >= 0; i--) {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1, 0, 0, 0, 0);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
     const label = monthStart.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
 
-    const [completedPieces, jobCardsCreated] = await Promise.all([
-      prisma.assignment.aggregate({
-        _sum: { completed_sets: true },
-        where: {
-          is_deleted: false,
-          status: { in: ['COMPLETED', 'SALARY_PENDING'] },
-          updated_at: { gte: monthStart, lte: monthEnd },
-        },
-      }),
-      prisma.jobCard.count({
-        where: { is_deleted: false, created_at: { gte: monthStart, lte: monthEnd } },
-      }),
-    ]);
+    const completedPieces = assignments
+      .filter(a => a.updated_at >= monthStart && a.updated_at <= monthEnd)
+      .reduce((sum, a) => sum + (a.completed_sets || 0), 0);
+
+    const jobCardsCreated = jobCards
+      .filter(jc => jc.created_at >= monthStart && jc.created_at <= monthEnd)
+      .length;
 
     months.push({
       month: label,
-      completedPieces: completedPieces._sum.completed_sets || 0,
+      completedPieces,
       jobCardsCreated,
     });
   }
@@ -376,32 +391,52 @@ async function getMonthlyProductionData() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// HELPER: Monthly salary trend (last 6 months) – sequential
+// HELPER: Monthly salary trend (last 6 months) – in-memory aggregation
 // ─────────────────────────────────────────────────────────────
 async function getMonthlySalaryTrend() {
   const months = [];
   const now = new Date();
+  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1, 0, 0, 0, 0);
+
+  // Fetch all payments in the range in one query
+  const payments = await prisma.employeePayment.findMany({
+    where: {
+      payment_date: { gte: sixMonthsAgo }
+    },
+    select: {
+      amount: true,
+      payment_date: true
+    }
+  });
+
+  // Fetch all advances in the range in one query
+  const advances = await prisma.employeeAdvance.findMany({
+    where: {
+      advance_date: { gte: sixMonthsAgo }
+    },
+    select: {
+      amount: true,
+      advance_date: true
+    }
+  });
 
   for (let i = 5; i >= 0; i--) {
-    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1, 0, 0, 0, 0);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
     const label = monthStart.toLocaleDateString('en-US', { month: 'short' });
 
-    const [paid, advanced] = await Promise.all([
-      prisma.employeePayment.aggregate({
-        _sum: { amount: true },
-        where: { payment_date: { gte: monthStart, lte: monthEnd } },
-      }),
-      prisma.employeeAdvance.aggregate({
-        _sum: { amount: true },
-        where: { advance_date: { gte: monthStart, lte: monthEnd } },
-      }),
-    ]);
+    const paid = payments
+      .filter(p => p.payment_date >= monthStart && p.payment_date <= monthEnd)
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    const advanced = advances
+      .filter(a => a.advance_date >= monthStart && a.advance_date <= monthEnd)
+      .reduce((sum, a) => sum + (a.amount || 0), 0);
 
     months.push({
       month: label,
-      paid: paid._sum.amount || 0,
-      advanced: advanced._sum.amount || 0,
+      paid,
+      advanced,
     });
   }
 
