@@ -9,7 +9,10 @@ import {
   X, 
   Building2, 
   Mail, 
-  AlertTriangle 
+  AlertTriangle,
+  Phone,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { api } from '../../services/api.js';
 import Loading from '../../components/common/Loading.jsx';
@@ -27,6 +30,7 @@ export const UserManagementPage = () => {
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
+  const [forceReset, setForceReset] = useState(true);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -64,7 +68,7 @@ export const UserManagementPage = () => {
     try {
       const response = await api.put(`/system/users/${user.id}/status`, { status: nextStatus });
       if (response.data?.success) {
-        toast.success(`User account has been ${nextStatus === 'ACTIVE' ? 'activated' : 'locked'}!`);
+        toast.success(`User account status updated to ${nextStatus}!`);
         fetchData();
       }
     } catch (error) {
@@ -75,7 +79,19 @@ export const UserManagementPage = () => {
   const handleOpenReset = (user) => {
     setSelectedUser(user);
     setNewPassword('');
+    setForceReset(true);
     setResetModalOpen(true);
+  };
+
+  const generateTempPassword = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%';
+    let tempPass = '';
+    for (let i = 0; i < 10; i++) {
+      tempPass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(tempPass);
+    setForceReset(true);
+    toast.success('Generated temporary password!');
   };
 
   const handleResetSubmit = async (e) => {
@@ -87,17 +103,31 @@ export const UserManagementPage = () => {
     try {
       const response = await api.put(`/system/users/${selectedUser.id}/reset-password`, {
         password: newPassword,
+        forceReset,
       });
       if (response.data?.success) {
-        toast.success(`Password reset successful for ${selectedUser.full_name}!`);
+        toast.success(
+          `Password reset successful. ${
+            forceReset ? 'User will be forced to change it on next login.' : ''
+          }`
+        );
         setResetModalOpen(false);
+        fetchData();
       }
     } catch (error) {
       console.error('Failed to update password:', error);
     }
   };
 
-  // Filter logic on client-side or we can query, let's filter client-side for immediate response
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'Never';
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   const filteredUsers = users.filter((u) => {
     const matchesSearch = 
       u.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -181,6 +211,7 @@ export const UserManagementPage = () => {
                   <th className="p-4">User Details</th>
                   <th className="p-4">Role</th>
                   <th className="p-4">Company Binding</th>
+                  <th className="p-4">Timestamps & Activity</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-center">Actions</th>
                 </tr>
@@ -188,27 +219,33 @@ export const UserManagementPage = () => {
               <tbody className="divide-y divide-slate-100">
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="text-center py-10 text-slate-400 font-medium">
+                    <td colSpan="6" className="text-center py-10 text-slate-400 font-medium">
                       No accounts match the selected parameters.
                     </td>
                   </tr>
                 ) : (
                   filteredUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/30 transition-colors">
-                      {/* Name & Email */}
+                      {/* Name & Email & Phone */}
                       <td className="p-4">
                         <div className="font-bold text-slate-900">{u.full_name}</div>
                         <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
                           <Mail className="w-3.5 h-3.5 text-slate-400" />
                           {u.email}
                         </div>
+                        {u.phone && (
+                          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5 font-medium">
+                            <Phone className="w-3.5 h-3.5 text-slate-400" />
+                            {u.phone}
+                          </div>
+                        )}
                       </td>
 
                       {/* Role */}
                       <td className="p-4">
                         <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold uppercase ${
                           u.role === 'SUPER_ADMIN' 
-                            ? 'bg-slate-900 text-white' 
+                            ? 'bg-slate-950 text-white' 
                             : u.role === 'OWNER' 
                             ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' 
                             : u.role === 'MANAGER'
@@ -227,13 +264,34 @@ export const UserManagementPage = () => {
                             {u.company.company_name}
                           </div>
                         ) : u.role === 'SUPER_ADMIN' ? (
-                          <span className="text-slate-400 text-xs font-medium italic">Global Instance</span>
+                          <span className="text-slate-400 text-xs font-medium italic">Global Platform Instance</span>
                         ) : (
                           <span className="text-xs text-rose-500 font-semibold flex items-center gap-1">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             Orphaned Account
                           </span>
                         )}
+                      </td>
+
+                      {/* Created, Updated, Last Login */}
+                      <td className="p-4 text-xs space-y-1 font-medium text-slate-600">
+                        <div>
+                          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide mr-1">Created:</span>
+                          {formatDate(u.created_at)}
+                        </div>
+                        <div>
+                          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wide mr-1">Updated:</span>
+                          {formatDate(u.updated_at)}
+                        </div>
+                        <div className="flex items-center gap-1 text-[11px] text-indigo-500 font-bold mt-0.5">
+                          <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                          Last Login: {formatDate(u.last_login)}
+                          {u.password_reset_required && (
+                            <span className="ml-2 bg-rose-50 text-rose-600 border border-rose-100 text-[9px] px-1 py-0.2 rounded font-bold uppercase">
+                              Reset Required
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -268,13 +326,13 @@ export const UserManagementPage = () => {
                                   ? 'text-rose-600 hover:text-rose-700 hover:bg-rose-50' 
                                   : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50'
                               }`}
-                              title={u.status === 'ACTIVE' ? 'Lock Account' : 'Unlock Account'}
+                              title={u.status === 'ACTIVE' ? 'Deactivate/Lock User' : 'Activate/Unlock User'}
                             >
                               {u.status === 'ACTIVE' ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                             </button>
                           </div>
                         ) : (
-                          <div className="text-center text-xs text-slate-400 italic">Self (Locked)</div>
+                          <div className="text-center text-xs text-slate-400 italic">Protected (Root)</div>
                         )}
                       </td>
                     </tr>
@@ -301,22 +359,46 @@ export const UserManagementPage = () => {
             </div>
 
             <form onSubmit={handleResetSubmit} className="p-6 space-y-4">
-              <p className="text-xs text-slate-500">
-                Update account password for: <span className="font-bold text-slate-800">{selectedUser?.full_name}</span>
+              <p className="text-xs text-slate-500 leading-normal">
+                Set a secure password or generate a temporary key for: <span className="font-bold text-slate-800">{selectedUser?.full_name}</span>.
               </p>
 
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  New Password *
-                </label>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Password Value *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={generateTempPassword}
+                    className="text-[10px] font-bold text-indigo-600 hover:text-indigo-500 flex items-center gap-1"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Generate Temp
+                  </button>
+                </div>
                 <input
-                  type="password"
+                  type="text"
                   required
                   placeholder="Minimum 6 characters"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:outline-none"
                 />
+              </div>
+
+              {/* Force password reset checkbox */}
+              <div className="flex items-center gap-2 pt-1 select-none">
+                <input
+                  type="checkbox"
+                  id="forceResetCheckbox"
+                  checked={forceReset}
+                  onChange={(e) => setForceReset(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+                <label htmlFor="forceResetCheckbox" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                  Force password reset on next login
+                </label>
               </div>
 
               <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 mt-4">

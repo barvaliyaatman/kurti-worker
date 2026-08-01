@@ -40,6 +40,7 @@ export const ROUTES = {
   SUPER_ADMIN_OWNERS: '/super-admin/owners',
   SUPER_ADMIN_USERS: '/super-admin/users',
   SUPER_ADMIN_SETTINGS: '/super-admin/settings',
+  SUPER_ADMIN_AUDIT_LOGS: '/super-admin/audit-logs',
 };
 
 export const USER_ROLES = {
@@ -87,6 +88,14 @@ export const NAVIGATION_ITEMS = [
     label: 'System Settings',
     path: '/super-admin/settings',
     icon: 'Settings',
+    allowedRoles: ['SUPER_ADMIN'],
+    mobileBottom: false,
+  },
+  {
+    id: 'super_admin_audit_logs',
+    label: 'Audit Trail',
+    path: '/super-admin/audit-logs',
+    icon: 'Activity',
     allowedRoles: ['SUPER_ADMIN'],
     mobileBottom: false,
   },

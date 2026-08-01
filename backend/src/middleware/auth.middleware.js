@@ -69,6 +69,7 @@ export const authenticate = async (req, res, next) => {
           role: true,
           status: true,
           company_id: true,
+          password_reset_required: true,
         },
       });
     } catch (_dbErr) {
@@ -79,6 +80,7 @@ export const authenticate = async (req, res, next) => {
         role: decoded.role,
         status: 'ACTIVE',
         company_id: decoded.company_id || null,
+        password_reset_required: decoded.password_reset_required || false,
       };
     }
 

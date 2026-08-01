@@ -21,7 +21,8 @@ import {
   Search,
   Sparkles,
   Trash2,
-  Building2
+  Building2,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useConfig } from '../contexts/ConfigContext.jsx';
@@ -46,6 +47,7 @@ const ICON_MAP = {
   Trash2,
   Building2,
   ShieldCheck,
+  Activity,
 };
 
 const BREADCRUMB_MAP = {
@@ -65,6 +67,7 @@ const BREADCRUMB_MAP = {
   '/super-admin/owners': 'Owner Accounts Management',
   '/super-admin/users': 'Global User Registry',
   '/super-admin/settings': 'Global System Settings',
+  '/super-admin/audit-logs': 'Security Audit Trail',
 };
 
 export const AppLayout = () => {

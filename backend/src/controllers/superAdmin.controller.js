@@ -2,6 +2,25 @@ import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import bcrypt from 'bcryptjs';
 
+// Audit Log Helper
+const logAuditAction = async (req, targetUser, action) => {
+  try {
+    const adminName = req.user?.full_name || 'System Super Admin';
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
+
+    await prisma.auditLog.create({
+      data: {
+        admin_name: adminName,
+        target_user: targetUser,
+        action: action,
+        ip_address: ipAddress,
+      },
+    });
+  } catch (error) {
+    console.error('❌ Failed to save audit log entry:', error);
+  }
+};
+
 // GET /api/companies
 export const getCompanies = async (req, res, next) => {
   try {
@@ -82,6 +101,8 @@ export const createCompany = async (req, res, next) => {
       },
     });
 
+    await logAuditAction(req, company_name, `REGISTERED_COMPANY: ${company_code}`);
+
     return ApiResponse.success({
       res,
       statusCode: 201,
@@ -121,6 +142,12 @@ export const updateCompany = async (req, res, next) => {
       },
     });
 
+    if (status && status !== company.status) {
+      await logAuditAction(req, company.company_name, `SET_COMPANY_STATUS: ${status}`);
+    } else {
+      await logAuditAction(req, company.company_name, 'UPDATED_COMPANY_DETAILS');
+    }
+
     return ApiResponse.success({
       res,
       statusCode: 200,
@@ -137,7 +164,17 @@ export const getOwners = async (req, res, next) => {
   try {
     const owners = await prisma.user.findMany({
       where: { role: 'OWNER' },
-      include: {
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        password_reset_required: true,
+        last_login: true,
+        created_at: true,
+        updated_at: true,
         company: {
           select: {
             company_name: true,
@@ -162,7 +199,7 @@ export const getOwners = async (req, res, next) => {
 // POST /api/owners
 export const createOwner = async (req, res, next) => {
   try {
-    const { full_name, email, password, company_id } = req.body;
+    const { full_name, email, password, company_id, phone } = req.body;
 
     if (!full_name || !email || !password || !company_id) {
       return ApiResponse.error({
@@ -198,6 +235,7 @@ export const createOwner = async (req, res, next) => {
         full_name,
         email,
         password_hash,
+        phone: phone || null,
         role: 'OWNER',
         company_id,
         status: 'ACTIVE',
@@ -209,6 +247,8 @@ export const createOwner = async (req, res, next) => {
       where: { id: company_id },
       data: { owner_name: full_name, email },
     });
+
+    await logAuditAction(req, `${full_name} (${email})`, `CREATED_OWNER_ACCOUNT for company ${company.company_name}`);
 
     return ApiResponse.success({
       res,
@@ -333,7 +373,17 @@ export const getSystemUsers = async (req, res, next) => {
 
     const users = await prisma.user.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        password_reset_required: true,
+        last_login: true,
+        created_at: true,
+        updated_at: true,
         company: {
           select: {
             company_name: true,
@@ -398,6 +448,9 @@ export const updateUserStatus = async (req, res, next) => {
       },
     });
 
+    const actionText = status === 'ACTIVE' ? 'ACTIVATED_ACCOUNT' : 'DEACTIVATED_ACCOUNT';
+    await logAuditAction(req, `${user.full_name} (${user.email})`, actionText);
+
     return ApiResponse.success({
       res,
       statusCode: 200,
@@ -413,7 +466,7 @@ export const updateUserStatus = async (req, res, next) => {
 export const resetUserPassword = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { password } = req.body;
+    const { password, forceReset } = req.body;
 
     if (!password || password.length < 6) {
       return ApiResponse.error({
@@ -435,13 +488,38 @@ export const resetUserPassword = async (req, res, next) => {
     const password_hash = await bcrypt.hash(password, 10);
     await prisma.user.update({
       where: { id },
-      data: { password_hash },
+      data: { 
+        password_hash,
+        password_reset_required: forceReset === true,
+      },
     });
+
+    const actionText = forceReset ? 'PASSWORD_RESET_FORCED' : 'PASSWORD_RESET_COMPLETED';
+    await logAuditAction(req, `${user.full_name} (${user.email})`, actionText);
 
     return ApiResponse.success({
       res,
       statusCode: 200,
       message: 'Password reset successfully.',
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// GET /api/system/audit-logs
+export const getAuditLogs = async (req, res, next) => {
+  try {
+    const logs = await prisma.auditLog.findMany({
+      orderBy: { created_at: 'desc' },
+      take: 100, // Safe limit for dashboard size performance
+    });
+
+    return ApiResponse.success({
+      res,
+      statusCode: 200,
+      message: 'Audit logs retrieved successfully.',
+      data: { logs },
     });
   } catch (error) {
     return next(error);

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, logout, getCurrentUser } from '../controllers/auth.controller.js';
+import { login, logout, getCurrentUser, changePassword } from '../controllers/auth.controller.js';
 import { validate } from '../middleware/validate.js';
 import { loginSchema } from '../validators/auth.validator.js';
 import { authenticate } from '../middleware/auth.middleware.js';
@@ -26,5 +26,12 @@ router.post('/logout', authenticate, logout);
  * @access Protected
  */
 router.get('/me', authenticate, getCurrentUser);
+
+/**
+ * @route POST /api/auth/change-password
+ * @desc Enforce users to change password on reset required
+ * @access Protected
+ */
+router.post('/change-password', authenticate, changePassword);
 
 export default router;

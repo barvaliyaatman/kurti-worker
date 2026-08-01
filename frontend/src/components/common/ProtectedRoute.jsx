@@ -5,7 +5,7 @@ import Loading from './Loading.jsx';
 import { ROUTES } from '../../constants/index.js';
 
 export const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -14,6 +14,10 @@ export const ProtectedRoute = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  }
+
+  if (user?.password_reset_required) {
+    return <Navigate to="/force-password-reset" replace />;
   }
 
   return children;

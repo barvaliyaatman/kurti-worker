@@ -11,6 +11,7 @@ import {
   getSystemUsers,
   updateUserStatus,
   resetUserPassword,
+  getAuditLogs,
 } from '../controllers/superAdmin.controller.js';
 
 const router = Router();
@@ -31,5 +32,8 @@ router.get('/system/dashboard', authenticate, authorizeRoles('SUPER_ADMIN'), get
 router.get('/system/users', authenticate, authorizeRoles('SUPER_ADMIN'), getSystemUsers);
 router.put('/system/users/:id/status', authenticate, authorizeRoles('SUPER_ADMIN'), updateUserStatus);
 router.put('/system/users/:id/reset-password', authenticate, authorizeRoles('SUPER_ADMIN'), resetUserPassword);
+
+// Audit Log Routes
+router.get('/system/audit-logs', authenticate, authorizeRoles('SUPER_ADMIN'), getAuditLogs);
 
 export default router;

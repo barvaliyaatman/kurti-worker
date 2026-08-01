@@ -27,13 +27,16 @@ import ProtectedRoute from '../components/common/ProtectedRoute.jsx';
 import RoleRoute from '../components/common/RoleRoute.jsx';
 import { ROUTES } from '../constants/index.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
+import Loading from '../components/common/Loading.jsx';
 
 import SuperAdminDashboard from '../pages/super-admin/SuperAdminDashboard.jsx';
 import CompanyManagementPage from '../pages/super-admin/CompanyManagementPage.jsx';
 import OwnerManagementPage from '../pages/super-admin/OwnerManagementPage.jsx';
 import UserManagementPage from '../pages/super-admin/UserManagementPage.jsx';
 import SystemSettingsPage from '../pages/super-admin/SystemSettingsPage.jsx';
+import AuditLogsPage from '../pages/super-admin/AuditLogsPage.jsx';
+import ForcePasswordResetPage from '../pages/ForcePasswordResetPage.jsx';
 
 const SuperAdminRedirect = () => {
   const { user } = useAuth();
@@ -41,6 +44,14 @@ const SuperAdminRedirect = () => {
     return <Navigate to="/super-admin/dashboard" replace />;
   }
   return <HomePage />;
+};
+
+const ForceResetRoute = ({ children }) => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const location = useLocation();
+  if (isLoading) return <Loading fullScreen message="Verifying session..." />;
+  if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  return children;
 };
 
 export const AppRoutes = () => {
@@ -51,6 +62,16 @@ export const AppRoutes = () => {
       <Route path={ROUTES.LOGIN} element={<LoginPage />} />
       <Route path={ROUTES.UNAUTHORIZED} element={<UnauthorizedPage />} />
       <Route path={ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
+
+      {/* Force password reset route - requires auth but has its own full screen layout */}
+      <Route
+        path="/force-password-reset"
+        element={
+          <ForceResetRoute>
+            <ForcePasswordResetPage />
+          </ForceResetRoute>
+        }
+      />
 
       {/* Protected Routes (Wrapped in AppLayout) */}
       <Route
@@ -102,6 +123,14 @@ export const AppRoutes = () => {
           element={
             <RoleRoute allowedRoles={['SUPER_ADMIN']}>
               <SystemSettingsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="/super-admin/audit-logs"
+          element={
+            <RoleRoute allowedRoles={['SUPER_ADMIN']}>
+              <AuditLogsPage />
             </RoleRoute>
           }
         />

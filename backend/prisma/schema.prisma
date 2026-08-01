@@ -89,17 +89,19 @@ model Company {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  full_name     String
-  email         String     @unique
-  password_hash String
-  role          UserRole   @default(CUTTING_MASTER)
-  status        UserStatus @default(ACTIVE)
-  last_login    DateTime?
-  company_id    String?
-  company       Company?   @relation(fields: [company_id], references: [id], onDelete: Cascade)
-  created_at    DateTime   @default(now())
-  updated_at    DateTime   @updatedAt
+  id                      String     @id @default(uuid())
+  full_name               String
+  email                   String     @unique
+  password_hash           String
+  phone                   String?
+  password_reset_required Boolean    @default(false)
+  role                    UserRole   @default(CUTTING_MASTER)
+  status                  UserStatus @default(ACTIVE)
+  last_login              DateTime?
+  company_id              String?
+  company                 Company?   @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  created_at              DateTime   @default(now())
+  updated_at              DateTime   @updatedAt
 
   @@index([company_id])
   @@map("users")
@@ -346,4 +348,15 @@ model GarmentSize {
   @@index([is_active, display_order])
   @@index([company_id])
   @@map("garment_sizes")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  admin_name  String
+  target_user String
+  action      String
+  ip_address  String?
+  created_at  DateTime @default(now())
+
+  @@map("audit_logs")
 }

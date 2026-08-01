@@ -103,6 +103,7 @@ export const login = async (req, res, next) => {
       email: user.email,
       role: user.role,
       company_id: user.company_id,
+      password_reset_required: user.password_reset_required,
     };
 
     const token = jwt.sign(tokenPayload, env.JWT_SECRET, {
@@ -116,6 +117,7 @@ export const login = async (req, res, next) => {
       role: user.role,
       status: user.status,
       company_id: user.company_id,
+      password_reset_required: user.password_reset_required,
       last_login: user.last_login || new Date(),
     };
 
@@ -127,6 +129,37 @@ export const login = async (req, res, next) => {
         token,
         user: userResponse,
       },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return ApiResponse.error({
+        res,
+        statusCode: 400,
+        message: 'Password must be at least 6 characters long.',
+      });
+    }
+
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        password_hash,
+        password_reset_required: false,
+      },
+    });
+
+    return ApiResponse.success({
+      res,
+      statusCode: 200,
+      message: 'Password changed successfully.',
     });
   } catch (error) {
     return next(error);
