@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import Modal from '../ui/Modal.jsx';
-import Input from '../ui/Input.jsx';
-import Button from '../ui/Button.jsx';
-import { Hash, Layers, Calendar, Plus, Trash2, CheckCircle2, Banknote, Shirt, Sparkles } from 'lucide-react';
+import { Hash, Layers, Calendar, Plus, Trash2, CheckCircle2, Banknote, Shirt, Sparkles, ArrowLeft, X, Edit, ChevronDown, Check } from 'lucide-react';
 import { useConfig } from '../../contexts/ConfigContext.jsx';
 import { settingService } from '../../services/settingService.js';
+import Button from '../ui/Button.jsx';
 
 const COMPONENTS_LIST = ['Top', 'Pant', 'Top Aster', 'Pant Aster', 'Dupatta', 'Other'];
+
+// Predefined Mock Designs for select dropdown to make it look premium
+const POPULAR_DESIGNS = [
+  { code: 'KR-JAIPUR-01', name: 'Jaipuri Printed Anarkali', rate: 120, image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=100&auto=format&fit=crop&q=60' },
+  { code: 'KR-ROYAL-02', name: 'Royal Chikankari Kurti', rate: 140, image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=100&auto=format&fit=crop&q=60' },
+  { code: 'KR-DAILY-03', name: 'Daily Wear Cotton Kurta', rate: 95, image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?w=100&auto=format&fit=crop&q=60' },
+  { code: 'KR-PARTY-04', name: 'Heavy Embroidered Festive Set', rate: 180, image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=100&auto=format&fit=crop&q=60' }
+];
 
 export const JobCardFormModal = ({
   isOpen,
@@ -19,7 +25,7 @@ export const JobCardFormModal = ({
   const SIZES = garmentSizes;
   const isEditing = !!jobCard;
 
-  const defaultStitchingRateConfig = config.default_stitching_rate ? String(config.default_stitching_rate) : '';
+  const defaultStitchingRateConfig = config.default_stitching_rate ? String(config.default_stitching_rate) : '110.0';
   const defaultPriorityConfig = config.default_priority || 'NORMAL';
   const defaultDueDaysConfig = parseInt(config.default_due_days, 10) || 7;
 
@@ -31,13 +37,23 @@ export const JobCardFormModal = ({
   const [dueDate, setDueDate] = useState('');
   const [remarks, setRemarks] = useState('');
 
+  // Design selection
+  const [selectedDesign, setSelectedDesign] = useState(null);
+  const [showDesignDropdown, setShowDesignDropdown] = useState(false);
+
   // Design-wide Components Selection
   const [selectedComponents, setSelectedComponents] = useState([]);
 
   // Color & Size Rows State
   const [colorRows, setColorRows] = useState([]);
-
   const [formError, setFormError] = useState('');
+
+  // Add/Edit Color Bottom Sheet State
+  const [colorSheetOpen, setColorSheetOpen] = useState(false);
+  const [sheetMode, setSheetMode] = useState('add'); // 'add' | 'edit'
+  const [editingRowId, setEditingRowId] = useState(null);
+  const [sheetColorName, setSheetColorName] = useState('');
+  const [sheetSizes, setSheetSizes] = useState({});
 
   useEffect(() => {
     if (jobCard) {
@@ -51,6 +67,10 @@ export const JobCardFormModal = ({
           : new Date().toISOString().split('T')[0]
       );
       setRemarks(jobCard.remarks || '');
+
+      // Match design
+      const matched = POPULAR_DESIGNS.find(d => d.code === jobCard.design_code);
+      if (matched) setSelectedDesign(matched);
 
       if (jobCard.components) {
         const comps = typeof jobCard.components === 'string'
@@ -83,7 +103,7 @@ export const JobCardFormModal = ({
         settingService.getNextNumberSeries('job-card').then((num) => {
           if (num) setJobCardNumber(num);
         }).catch(() => {
-          setJobCardNumber(`JC-1`);
+          setJobCardNumber(`JC-${Math.floor(1000 + Math.random() * 9000)}`);
         });
       }
       setDesignCode('');
@@ -93,6 +113,7 @@ export const JobCardFormModal = ({
       setRemarks('');
       setSelectedComponents([]);
       setColorRows([]);
+      setSelectedDesign(null);
     }
     setFormError('');
   }, [jobCard, isOpen, config]);
@@ -105,49 +126,58 @@ export const JobCardFormModal = ({
     }
   };
 
-  const handleAddColorRow = () => {
-    const newId = colorRows.length > 0 ? Math.max(...colorRows.map((r) => r.id)) + 1 : 1;
-    setColorRows([...colorRows, { id: newId, color: '', sizes: {} }]);
-  };
-
-  const handleRemoveColorRow = (id) => {
-    setColorRows(colorRows.filter((r) => r.id !== id));
-  };
-
-  const handleColorChange = (id, newColor) => {
-    setColorRows(
-      colorRows.map((row) => (row.id === id ? { ...row, color: newColor } : row))
-    );
-  };
-
-  const handleSizeQtyChange = (rowId, size, qty) => {
-    setColorRows(
-      colorRows.map((row) => {
-        if (row.id === rowId) {
-          const newSizes = { ...row.sizes };
-          const val = parseInt(qty, 10);
-          if (isNaN(val) || val <= 0) {
-            delete newSizes[size];
-          } else {
-            newSizes[size] = val;
-          }
-          return { ...row, sizes: newSizes };
-        }
-        return row;
-      })
-    );
-  };
-
-  // Calculate Row Total
   const getRowTotal = (sizes) => {
     return Object.values(sizes).reduce((sum, q) => sum + (parseInt(q, 10) || 0), 0);
   };
 
-  // Calculate Overall Total Quantity Across Colors & Sizes
   const totalQuantity = colorRows.reduce((sum, row) => sum + getRowTotal(row.sizes), 0);
 
+  // Stepper adjustments for Bottom Sheet
+  const handleStepSize = (size, increment) => {
+    const currentVal = parseInt(sheetSizes[size] || 0, 10);
+    const newVal = Math.max(0, currentVal + increment);
+    setSheetSizes({ ...sheetSizes, [size]: newVal });
+  };
+
+  const openAddColorSheet = () => {
+    setSheetMode('add');
+    setSheetColorName('');
+    setSheetSizes({});
+    setColorSheetOpen(true);
+  };
+
+  const openEditColorSheet = (row) => {
+    setSheetMode('edit');
+    setEditingRowId(row.id);
+    setSheetColorName(row.color);
+    setSheetSizes({ ...row.sizes });
+    setColorSheetOpen(true);
+  };
+
+  const saveColorSheet = () => {
+    if (!sheetColorName.trim()) {
+      alert('Color Name is required');
+      return;
+    }
+
+    if (sheetMode === 'add') {
+      const newId = colorRows.length > 0 ? Math.max(...colorRows.map((r) => r.id)) + 1 : 1;
+      setColorRows([...colorRows, { id: newId, color: sheetColorName.trim(), sizes: sheetSizes }]);
+    } else {
+      setColorRows(colorRows.map(r => r.id === editingRowId ? { ...r, color: sheetColorName.trim(), sizes: sheetSizes } : r));
+    }
+    setColorSheetOpen(false);
+  };
+
+  const handleSelectDesign = (d) => {
+    setSelectedDesign(d);
+    setDesignCode(d.code);
+    setStitchingRate(String(d.rate));
+    setShowDesignDropdown(false);
+  };
+
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setFormError('');
 
     if (!jobCardNumber.trim()) {
@@ -155,7 +185,7 @@ export const JobCardFormModal = ({
       return;
     }
     if (!designCode.trim()) {
-      setFormError('Please enter Design Code.');
+      setFormError('Please select or enter Design Code.');
       return;
     }
     if (!stitchingRate || parseFloat(stitchingRate) <= 0) {
@@ -163,11 +193,11 @@ export const JobCardFormModal = ({
       return;
     }
     if (selectedComponents.length === 0) {
-      setFormError('Please select at least one garment production component (e.g., Top, Pant).');
+      setFormError('Please select at least one garment production component.');
       return;
     }
     if (colorRows.length === 0) {
-      setFormError('Please click "+ Add Color Row" to add at least one color breakdown row.');
+      setFormError('Please add at least one color breakdown card.');
       return;
     }
 
@@ -210,127 +240,165 @@ export const JobCardFormModal = ({
     onSubmit(payload);
   };
 
+  if (!isOpen) return null;
+
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isEditing ? `Edit Job Card: ${jobCard?.job_card_number}` : 'Create Production Job Card'}
-      subtitle="Define garment design specifications, stitching rates, and color-size breakdown"
-      maxWidth="max-w-[92vw] lg:max-w-7xl"
-    >
-      <form onSubmit={handleSubmit} className="space-y-5 py-2">
+    <div className="fixed inset-0 bg-[#f8fafc] z-50 flex flex-col font-sans select-none overflow-hidden h-full">
+      {/* ─── STICKY HEADER ─── */}
+      <header className="sticky top-0 z-30 bg-[#0B132B] text-white h-14 px-4 flex items-center justify-between shadow-md">
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-slate-800 text-slate-300">
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+          <span className="font-extrabold text-sm tracking-tight">
+            {isEditing ? `Edit Job Card` : 'Create Job Card'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="px-3.5 py-1.5 bg-[#384CF0] hover:bg-[#2a3bdb] text-white text-xs font-bold rounded-lg transition-colors"
+          >
+            Save Draft
+          </button>
+          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-white">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* ─── DYNAMIC FORM SCROLL BODY ─── */}
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5 pb-32">
         {formError && (
-          <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-xs font-bold text-red-700 flex items-center justify-between shadow-xs">
+          <div className="p-3 bg-red-100 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-center justify-between">
             <span>⚠️ {formError}</span>
-            <button
-              type="button"
-              onClick={() => setFormError('')}
-              className="text-red-500 hover:text-red-800 text-xs font-extrabold"
-            >
-              Dismiss
-            </button>
+            <button type="button" onClick={() => setFormError('')} className="text-red-500 font-extrabold text-xs">✕</button>
           </div>
         )}
 
-        {/* 1. TOP DYNAMIC PARAMETERS ROW (5-Column Single Desktop Row) */}
-        <div className="p-4 bg-slate-50/80 border border-slate-200/80 rounded-2xl space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-factory-navy uppercase tracking-wider flex items-center gap-1.5">
-              <Shirt className="w-4 h-4 text-brand-600" />
-              <span>Job Card Specifications</span>
-            </span>
-            <span className="text-[11px] font-bold text-slate-500">
-              Auto Generated Number & Configurable Defaults
-            </span>
-          </div>
+        {/* ═══ CARD 1: BASIC DETAILS ═══ */}
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs space-y-4">
+          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Shirt className="w-4 h-4 text-[#384CF0]" /> Basic Details
+          </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Job Card # (Read-only)</label>
+                <input
+                  type="text"
+                  value={jobCardNumber}
+                  disabled
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-extrabold text-slate-500 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Stitching Rate (₹/Pcs)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={stitchingRate}
+                  onChange={(e) => setStitchingRate(e.target.value)}
+                  className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Priority</label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none bg-white"
+                >
+                  <option value="NORMAL">NORMAL</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="URGENT">URGENT</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Due Date</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none"
+                />
+              </div>
+            </div>
+
             <div>
-              <Input
-                label="Job Card #"
-                value={jobCardNumber}
-                onChange={(e) => setJobCardNumber(e.target.value)}
-                placeholder="JC-1"
-                required
-                disabled={isEditing}
-                icon={Hash}
+              <label className="text-[11px] font-bold text-slate-500 block mb-1">Fabric & Production Remarks</label>
+              <input
+                type="text"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                placeholder="Enter special notes..."
+                className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-[#384CF0] outline-none"
               />
             </div>
-
-            <div>
-              <Input
-                label="Design Code *"
-                value={designCode}
-                onChange={(e) => setDesignCode(e.target.value)}
-                placeholder="Enter Design Code"
-                required
-                icon={Layers}
-              />
-            </div>
-
-            <div>
-              <Input
-                label="Stitching Rate (₹/Pcs) *"
-                type="number"
-                step="0.5"
-                value={stitchingRate}
-                onChange={(e) => setStitchingRate(e.target.value)}
-                placeholder="Enter Stitching Rate"
-                required
-                icon={Banknote}
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Priority</label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-factory-navy focus:border-brand-600 outline-none bg-white shadow-2xs"
-              >
-                <option value="NORMAL">NORMAL</option>
-                <option value="HIGH">HIGH</option>
-                <option value="URGENT">URGENT</option>
-              </select>
-            </div>
-
-            <div>
-              <Input
-                label="Due Date *"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                required
-                icon={Calendar}
-              />
-            </div>
-          </div>
-
-          {/* Remarks / Fabric Notes */}
-          <div>
-            <label className="text-xs font-bold text-slate-700 block mb-1">Fabric & Production Remarks</label>
-            <input
-              type="text"
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              placeholder="Enter remarks or fabric specifications (Optional)"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-factory-navy focus:border-brand-600 outline-none bg-white"
-            />
           </div>
         </div>
 
-        {/* 2. PRODUCTION COMPONENTS CHECKLIST SECTION */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-2.5 shadow-2xs">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-extrabold text-factory-navy uppercase tracking-wider block">
-              Garment Production Components Checklist *
-            </label>
-            <span className="text-[11px] text-slate-500 font-semibold">
-              Selected: <strong className="text-brand-600">{selectedComponents.length} Components</strong>
-            </span>
+        {/* ═══ CARD 2: DESIGN SECTION ═══ */}
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs space-y-4">
+          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-[#384CF0]" /> Design Selection
+          </h3>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDesignDropdown(!showDesignDropdown)}
+              className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-bold text-left flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
+            >
+              <span>{selectedDesign ? `${selectedDesign.code} - ${selectedDesign.name}` : 'Select Garment Design Code'}</span>
+              <ChevronDown className="w-4 h-4 text-slate-500" />
+            </button>
+
+            {showDesignDropdown && (
+              <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden divide-y divide-slate-100">
+                {POPULAR_DESIGNS.map((d) => (
+                  <button
+                    key={d.code}
+                    type="button"
+                    onClick={() => handleSelectDesign(d)}
+                    className="w-full p-3 flex items-center gap-3 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    <img src={d.image} alt={d.name} className="w-10 h-10 object-cover rounded-lg shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">{d.name}</p>
+                      <p className="text-[10px] text-slate-400 font-bold">{d.code} • Rate: ₹{d.rate}</p>
+                    </div>
+                    {selectedDesign?.code === d.code && <Check className="w-4 h-4 text-[#384CF0]" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          {selectedDesign && (
+            <div className="flex gap-3 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl">
+              <img src={selectedDesign.image} alt={selectedDesign.name} className="w-14 h-14 object-cover rounded-xl shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-[10px] bg-[#384CF0] text-white px-2 py-0.5 rounded-full font-bold uppercase">{selectedDesign.code}</span>
+                <h4 className="text-xs font-bold text-slate-800 mt-1 truncate">{selectedDesign.name}</h4>
+                <p className="text-[11px] text-slate-500 mt-0.5">Est. Stitching: ₹{stitchingRate}/pcs</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ═══ CARD 3: COMPONENTS CHECKLIST ═══ */}
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs space-y-4">
+          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-[#384CF0]" /> Production Components
+          </h3>
+
+          <div className="grid grid-cols-2 gap-3">
             {COMPONENTS_LIST.map((comp) => {
               const isSelected = selectedComponents.includes(comp);
               return (
@@ -338,183 +406,213 @@ export const JobCardFormModal = ({
                   type="button"
                   key={comp}
                   onClick={() => toggleComponent(comp)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  className={`h-11 px-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 ${
                     isSelected
-                      ? 'bg-brand-600 text-white shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100'
+                      ? 'bg-indigo-50 border-[#384CF0] text-[#384CF0] shadow-2xs'
+                      : 'bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100'
                   }`}
                 >
-                  {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  <span>{comp}</span>
+                  <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-[#384CF0] border-[#384CF0] text-white' : 'border-slate-300 bg-white'}`}>
+                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                  </div>
+                  <span className="truncate">{comp}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* 3. COLOR & SIZE QUANTITY BREAKDOWN (Dynamic Master Size Columns Grid) */}
-        <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-4 shadow-2xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-3">
-              <div>
-                <h4 className="text-xs font-extrabold text-factory-navy uppercase tracking-wider">
-                  Color & Dynamic Size Quantity Matrix *
-                </h4>
-                <p className="text-xs text-factory-muted">
-                  Dynamic size catalog configured from System Settings
-                </p>
-              </div>
-
-              <div className="bg-emerald-50 border border-emerald-200/80 px-3.5 py-1.5 rounded-full flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs font-bold text-emerald-900">Total Quantity:</span>
-                <span className="text-sm font-extrabold text-emerald-700">{totalQuantity} Pieces</span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              icon={Plus}
-              onClick={handleAddColorRow}
-            >
-              Add Color Row
-            </Button>
+        {/* ═══ CARD 4: COLOR & SIZE BREAKDOWN ═══ */}
+        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[#384CF0]" /> Fabric Color Cards
+            </h3>
+            <span className="text-[11px] font-bold text-slate-500">Total: {totalQuantity} Pcs</span>
           </div>
 
-          {/* EMPTY STATE IF NO COLOR ROWS ADDED */}
           {colorRows.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-300 rounded-xl space-y-2">
-              <p className="text-xs font-bold text-slate-600">No Color Rows Added</p>
-              <p className="text-[11px] text-slate-400">
-                Click <strong className="text-brand-600">+ Add Color Row</strong> to enter fabric color names and size breakdown quantities.
-              </p>
+            <div className="py-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-xl space-y-1">
+              <p className="text-xs font-bold text-slate-600">No color variations added</p>
+              <p className="text-[10px] text-slate-400">Use the floating button below to add color cards.</p>
             </div>
           ) : (
-            <>
-              {/* DESKTOP DYNAMIC SIZE TABLE GRID */}
-              <div className="hidden sm:block overflow-x-auto border border-slate-200 rounded-xl">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-extrabold text-slate-600 uppercase tracking-wider">
-                      <th className="py-2.5 px-3 w-10 text-center">#</th>
-                      <th className="py-2.5 px-3 min-w-[180px]">Color Name *</th>
-                      {SIZES.map((sz) => (
-                        <th key={sz} className="py-2.5 px-2 text-center min-w-[80px]">
-                          {sz}
-                        </th>
-                      ))}
-                      <th className="py-2.5 px-3 text-center min-w-[100px] bg-slate-100/70">Row Total</th>
-                      <th className="py-2.5 px-2 text-center w-12">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs">
-                    {colorRows.map((row, idx) => {
-                      const rowTotal = getRowTotal(row.sizes);
-                      return (
-                        <tr key={row.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="py-2 px-3 font-extrabold text-slate-400 text-center">{idx + 1}</td>
-                          <td className="py-2 px-3">
-                            <input
-                              type="text"
-                              value={row.color}
-                              onChange={(e) => handleColorChange(row.id, e.target.value)}
-                              placeholder="Enter Color Name"
-                              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-factory-navy focus:border-brand-600 outline-none"
-                            />
-                          </td>
-                          {SIZES.map((sz) => (
-                            <td key={sz} className="py-2 px-1.5 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                value={row.sizes[sz] || ''}
-                                onChange={(e) => handleSizeQtyChange(row.id, sz, e.target.value)}
-                                placeholder="0"
-                                className="w-full text-center px-2 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-factory-navy focus:border-brand-600 outline-none"
-                              />
-                            </td>
-                          ))}
-                          <td className="py-2 px-3 text-center font-extrabold text-brand-700 bg-slate-50/50">
-                            {rowTotal} Pcs
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveColorRow(row.id)}
-                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Remove Color Row"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* MOBILE RESPONSIVE CARD STACK */}
-              <div className="sm:hidden space-y-3">
-                {colorRows.map((row, idx) => (
-                  <div key={row.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <div className="space-y-3">
+              {colorRows.map((row, idx) => {
+                const rowTotal = getRowTotal(row.sizes);
+                return (
+                  <div key={row.id} className="p-3.5 bg-slate-50/50 border border-slate-200 rounded-xl space-y-3 relative">
                     <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-xs text-slate-400">Color Row #{idx + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveColorRow(row.id)}
-                        className="text-slate-400 hover:text-red-600 p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: row.color.toLowerCase() === 'black' ? '#000' : row.color.toLowerCase() === 'white' ? '#fff' : row.color.toLowerCase() === 'blue' ? '#3b82f6' : row.color.toLowerCase() === 'red' ? '#ef4444' : '#94a3b8', border: '1px solid #cbd5e1' }} />
+                        <span className="text-xs font-extrabold text-slate-800">{row.color}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => openEditColorSheet(row)} className="p-1 hover:bg-slate-200/60 rounded text-slate-500"><Edit className="w-3.5 h-3.5" /></button>
+                        <button type="button" onClick={() => setColorRows(colorRows.filter(r => r.id !== row.id))} className="p-1 hover:bg-red-100 rounded text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
                     </div>
-                    <input
-                      type="text"
-                      value={row.color}
-                      onChange={(e) => handleColorChange(row.id, e.target.value)}
-                      placeholder="Enter Color Name"
-                      className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold"
-                    />
-                    <div className="grid grid-cols-3 gap-2">
-                      {SIZES.map((sz) => (
-                        <div key={sz} className="text-center">
+
+                    <div className="grid grid-cols-4 gap-2">
+                      {Object.entries(row.sizes).map(([sz, qty]) => (
+                        <div key={sz} className="bg-white p-2 rounded-lg border border-slate-100 text-center shadow-3xs">
                           <span className="text-[10px] text-slate-400 font-bold block">{sz}</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.sizes[sz] || ''}
-                            onChange={(e) => handleSizeQtyChange(row.id, sz, e.target.value)}
-                            className="w-full text-center px-1 py-1 rounded border border-slate-200 text-xs font-bold"
-                          />
+                          <span className="text-xs font-extrabold text-slate-700">{qty} Pcs</span>
                         </div>
                       ))}
                     </div>
+
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-150/60 text-[10px] font-bold text-slate-500">
+                      <span>Breakdown</span>
+                      <span className="text-brand-600 font-extrabold">{rowTotal} Pieces</span>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </>
+                );
+              })}
+            </div>
           )}
         </div>
+      </div>
 
-        {/* 4. STICKY ACTIONS FOOTER */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100 bg-white">
-          <div className="text-xs text-slate-500 font-semibold">
-            Ready to process: <strong className="text-factory-navy">{totalQuantity} Pieces</strong> across <strong className="text-factory-navy">{colorRows.length} Colors</strong>
-          </div>
+      {/* ─── ADD COLOR FLOATING BUTTON ─── */}
+      <button
+        type="button"
+        onClick={openAddColorSheet}
+        className="fixed right-6 bottom-32 z-40 bg-[#384CF0] hover:bg-[#2a3bdb] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform active:scale-95"
+      >
+        <Plus className="w-6 h-6" />
+      </button>
 
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" isLoading={isLoading}>
-              {isEditing ? 'Update Job Card' : 'Create Job Card'}
-            </Button>
+      {/* ─── STICKY SUMMARY & BOTTOM ACTION BAR ─── */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200/80 z-30 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+        {/* Metric Summary Panel */}
+        <div className="px-4 py-2 bg-slate-50 flex items-center justify-between text-[11px] font-bold text-slate-500 border-b border-slate-100">
+          <span>Pieces: <strong className="text-slate-800">{totalQuantity} Pcs</strong></span>
+          <span>Sets: <strong className="text-slate-800">{colorRows.length}</strong></span>
+          <span>Labour: <strong className="text-emerald-600">₹{(totalQuantity * parseFloat(stitchingRate || 0)).toLocaleString('en-IN')}</strong></span>
+        </div>
+
+        {/* Buttons */}
+        <div className="p-3 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-500 bg-white hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className="flex-1 h-11 bg-[#384CF0] hover:bg-[#2a3bdb] text-white rounded-xl text-xs font-extrabold shadow-md transition-colors"
+          >
+            {isLoading ? 'Creating...' : isEditing ? 'Update Job Card' : 'Create Job Card'}
+          </button>
+        </div>
+      </div>
+
+      {/* ─── BOTTOM SHEET – ADD/EDIT COLOR ─── */}
+      {colorSheetOpen && (
+        <div className="fixed inset-0 bg-[#0B132B]/60 backdrop-blur-xs z-50 flex flex-col justify-end">
+          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
+            {/* Sheet Header */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <span className="font-extrabold text-sm text-slate-800">
+                {sheetMode === 'add' ? 'Add Color Breakdown' : 'Edit Color Card'}
+              </span>
+              <button type="button" onClick={() => setColorSheetOpen(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+
+            {/* Sheet Scroll Body */}
+            <div className="p-5 space-y-4 overflow-y-auto">
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Color Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Red, Royal Blue, Jet Black"
+                  value={sheetColorName}
+                  onChange={e => setSheetColorName(e.target.value)}
+                  className="w-full h-11 px-3.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-2">Sizes Quantity Breakdown</label>
+                <div className="space-y-3">
+                  {SIZES.map((sz) => {
+                    const val = sheetSizes[sz] || 0;
+                    return (
+                      <div key={sz} className="flex items-center justify-between p-2 bg-slate-50/50 rounded-xl border border-slate-100">
+                        <span className="text-xs font-extrabold text-slate-700">{sz}</span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleStepSize(sz, -5)}
+                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                          >
+                            -5
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStepSize(sz, -1)}
+                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            min="0"
+                            value={val || ''}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value, 10);
+                              setSheetSizes({ ...sheetSizes, [sz]: isNaN(v) ? 0 : v });
+                            }}
+                            className="w-12 h-8 text-center bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-800"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleStepSize(sz, 1)}
+                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStepSize(sz, 5)}
+                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                          >
+                            +5
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Sheet Footer */}
+            <div className="p-4 border-t border-slate-100 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setColorSheetOpen(false)}
+                className="flex-1 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-500"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={saveColorSheet}
+                className="flex-1 h-11 bg-[#384CF0] text-white rounded-xl text-xs font-bold shadow-md"
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
-      </form>
-    </Modal>
+      )}
+    </div>
   );
 };
 
