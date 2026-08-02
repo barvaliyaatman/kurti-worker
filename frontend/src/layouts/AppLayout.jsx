@@ -23,8 +23,11 @@ import {
   Trash2,
   Building2,
   Activity,
-  UserCog
+  UserCog,
+  Plus,
+  MoreHorizontal
 } from 'lucide-react';
+
 import { useAuth } from '../hooks/useAuth.js';
 import { useConfig } from '../contexts/ConfigContext.jsx';
 import { APP_NAME, FACTORY_NAME, ROUTES, NAVIGATION_ITEMS } from '../constants/index.js';
@@ -50,7 +53,9 @@ const ICON_MAP = {
   ShieldCheck,
   Activity,
   UserCog,
+  MoreHorizontal,
 };
+
 
 const BREADCRUMB_MAP = {
   '/home': 'Dashboard',
@@ -80,6 +85,8 @@ export const AppLayout = () => {
   
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
+
 
   const displayAppName = config.company_name || APP_NAME;
   const displayFactoryName = config.factory_name || FACTORY_NAME;
@@ -107,12 +114,28 @@ export const AppLayout = () => {
     pageTitle = 'Cutting Progress Details';
   }
 
+  const isSuperAdmin = userRoleUpper === 'SUPER_ADMIN';
+
+  // Bottom Navigation Bar mapping for mobile (Dashboard, Job Cards, Cutting, Employees, More)
+  const mobileNavItems = isSuperAdmin ? [
+    { label: 'Dashboard', path: '/super-admin/dashboard', icon: Home },
+    { label: 'Companies', path: '/super-admin/companies', icon: Building2 },
+    { label: 'Owners', path: '/super-admin/owners', icon: ShieldCheck },
+    { label: 'Users', path: '/super-admin/users', icon: Users },
+  ] : [
+    { label: 'Dashboard', path: ROUTES.HOME, icon: Home },
+    { label: 'Job Cards', path: ROUTES.JOB_CARDS, icon: FileText, allowedRoles: ['OWNER', 'MANAGER'] },
+    { label: 'Cutting', path: ROUTES.CUTTING, icon: Scissors, allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'] },
+    { label: 'Employees', path: ROUTES.EMPLOYEES, icon: Users, allowedRoles: ['OWNER'] },
+  ].filter(item => !item.allowedRoles || item.allowedRoles.includes(userRoleUpper));
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row antialiased select-none font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row antialiased select-none font-sans pb-16 lg:pb-0">
       <SessionExpiredDialog
         isOpen={sessionExpiredModalOpen}
         onClose={closeSessionExpiredModal}
       />
+
 
       {/* ========================================================================= */}
       {/* DESKTOP SIDEBAR (<lg hidden, lg+ visible) */}
@@ -260,7 +283,7 @@ export const AppLayout = () => {
           </div>
 
           {/* Header Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* User Role Badge Capsule */}
             <div className="hidden sm:flex items-center gap-2.5 bg-indigo-50/80 border border-indigo-200/80 px-3.5 py-1.5 rounded-full text-xs font-semibold text-indigo-900 shadow-xs">
               <ShieldCheck className="w-4 h-4 text-[#384CF0]" />
@@ -273,16 +296,17 @@ export const AppLayout = () => {
             {/* Notification Bell Dropdown */}
             <NotificationBellDropdown />
 
-            {/* Mobile Drawer Hamburger */}
+            {/* Mobile Drawer Hamburger (Hidden/Secondary on mobile, handled via "More") */}
             <button
               onClick={() => setMobileDrawerOpen(true)}
-              className="lg:hidden p-2.5 rounded-xl text-slate-900 hover:bg-slate-100 transition-colors"
+              className="hidden lg:hidden p-2.5 rounded-xl text-slate-900 hover:bg-slate-100 transition-colors"
               aria-label="Toggle menu"
             >
               <Menu className="w-6 h-6" />
             </button>
           </div>
         </header>
+
 
         {/* ----------------------------------------------------------------------- */}
         {/* MOBILE NAVIGATION DRAWER (Slide-out) */}
@@ -370,12 +394,81 @@ export const AppLayout = () => {
         </Drawer>
 
         {/* PAGE CONTENT ROUTER VIEW */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto pb-24 lg:pb-12">
+        <main className="flex-1 p-3 sm:p-8 max-w-7xl w-full mx-auto pb-24 lg:pb-12">
           <Outlet />
         </main>
+
+        {/* ----------------------------------------------------------------------- */}
+        {/* MOBILE FLOATING ACTION BUTTON (FAB) & MENU */}
+        {/* ----------------------------------------------------------------------- */}
+        {!isSuperAdmin && (userRoleUpper === 'OWNER' || userRoleUpper === 'MANAGER') && (
+          <div className="lg:hidden fixed right-4 bottom-20 z-40 flex flex-col items-end gap-2">
+            {fabOpen && (
+              <div className="flex flex-col items-end gap-2 mb-2">
+                <button
+                  onClick={() => { setFabOpen(false); navigate('/job-cards'); }}
+                  className="flex items-center gap-2 bg-white text-slate-800 px-3.5 py-2 rounded-full text-xs font-bold shadow-lg border border-slate-100"
+                >
+                  <FileText className="w-4 h-4 text-[#384CF0]" /> New Job Card
+                </button>
+                {userRoleUpper === 'OWNER' && (
+                  <button
+                    onClick={() => { setFabOpen(false); navigate('/employees'); }}
+                    className="flex items-center gap-2 bg-white text-slate-800 px-3.5 py-2 rounded-full text-xs font-bold shadow-lg border border-slate-100"
+                  >
+                    <Users className="w-4 h-4 text-[#384CF0]" /> New Employee
+                  </button>
+                )}
+              </div>
+            )}
+            <button
+              onClick={() => setFabOpen(!fabOpen)}
+              className="w-14 h-14 bg-[#384CF0] hover:bg-[#2a3bdb] text-white rounded-full flex items-center justify-center shadow-xl transition-all duration-200"
+              title="Quick Actions"
+            >
+              <Plus className={`w-6 h-6 transition-transform duration-200 ${fabOpen ? 'rotate-45' : ''}`} />
+            </button>
+          </div>
+        )}
+
+        {/* ----------------------------------------------------------------------- */}
+        {/* MATERIAL DESIGN 3 BOTTOM NAVIGATION BAR */}
+        {/* ----------------------------------------------------------------------- */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200/80 z-30 flex items-center justify-around px-2 shadow-[0_-4px_12px_rgba(0,0,0,0.03)]">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className="flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500 hover:text-[#384CF0]"
+              >
+                <div className={`p-1.5 rounded-full transition-all duration-200 ${isActive ? 'bg-[#384CF0]/10 text-[#384CF0]' : 'text-slate-400'}`}>
+                  <Icon className="w-5 h-5 shrink-0" />
+                </div>
+                <span className={`text-[10px] font-bold mt-0.5 tracking-tight ${isActive ? 'text-[#384CF0]' : 'text-slate-400'}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setMobileDrawerOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 h-full py-1 text-slate-500"
+          >
+            <div className={`p-1.5 rounded-full text-slate-400`}>
+              <MoreHorizontal className="w-5 h-5 shrink-0" />
+            </div>
+            <span className="text-[10px] font-bold mt-0.5 tracking-tight text-slate-400">
+              More
+            </span>
+          </button>
+        </nav>
       </div>
     </div>
   );
 };
 
 export default AppLayout;
+
