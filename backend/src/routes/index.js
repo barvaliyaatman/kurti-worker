@@ -15,6 +15,7 @@ import settingRoutes from './setting.routes.js';
 import garmentSizeRoutes from './garmentSize.routes.js';
 import archiveRoutes from './archive.routes.js';
 import superAdminRoutes from './superAdmin.routes.js';
+import companyUserRoutes from './companyUser.routes.js';
 
 const router = Router();
 
@@ -64,6 +65,9 @@ router.use('/garment-sizes', garmentSizeRoutes);
 // Trash / Archive APIs (/api/archive/*)
 router.use('/archive', archiveRoutes);
 
+// Company User Management APIs (/api/company-users/*)
+router.use('/company-users', companyUserRoutes);
+
 // Advance & Payment APIs (/api/advances/* & /api/payments/*)
 router.use('/', advancePaymentRoutes);
 
@@ -82,6 +86,7 @@ router.use('/v1/notifications', notificationRoutes);
 router.use('/v1/settings', settingRoutes);
 router.use('/v1/garment-sizes', garmentSizeRoutes);
 router.use('/v1/archive', archiveRoutes);
+router.use('/v1/company-users', companyUserRoutes);
 router.use('/v1', settingRoutes);
 router.use('/v1', advancePaymentRoutes);
 

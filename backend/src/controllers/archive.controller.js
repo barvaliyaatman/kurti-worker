@@ -1,28 +1,27 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
 
 /**
  * Get all soft-deleted records from Trash
  */
 export const getArchivedRecords = async (req, res, next) => {
   try {
-    // Optional: type can be fetched if needed: const { type } = req.query;
+    const companyFilter = getCompanyFilter(req.user);
 
     const jobCards = await prisma.jobCard.findMany({
-      where: { is_deleted: true },
-      include: {
-        items: true,
-      },
+      where: { is_deleted: true, ...companyFilter },
+      include: { items: true },
       orderBy: { deleted_at: 'desc' },
     });
 
     const employees = await prisma.employee.findMany({
-      where: { is_deleted: true },
+      where: { is_deleted: true, ...companyFilter },
       orderBy: { deleted_at: 'desc' },
     });
 
     const bundles = await prisma.bundle.findMany({
-      where: { is_deleted: true },
+      where: { is_deleted: true, ...companyFilter },
       include: {
         job_card: {
           select: { job_card_number: true, design_code: true },

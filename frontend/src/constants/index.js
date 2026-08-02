@@ -35,6 +35,7 @@ export const ROUTES = {
   UNAUTHORIZED: '/unauthorized',
   FORBIDDEN: '/forbidden',
   COMING_SOON: '/coming-soon',
+  COMPANY_USERS: '/company-users',
   SUPER_ADMIN_DASHBOARD: '/super-admin/dashboard',
   SUPER_ADMIN_COMPANIES: '/super-admin/companies',
   SUPER_ADMIN_OWNERS: '/super-admin/owners',
@@ -151,6 +152,15 @@ export const NAVIGATION_ITEMS = [
     icon: 'Users',
     allowedRoles: ['OWNER'],
     mobileBottom: true,
+    category: 'Workforce',
+  },
+  {
+    id: 'company_users',
+    label: 'Team Users',
+    path: ROUTES.COMPANY_USERS,
+    icon: 'UserCog',
+    allowedRoles: ['OWNER'],
+    mobileBottom: false,
     category: 'Workforce',
   },
   {

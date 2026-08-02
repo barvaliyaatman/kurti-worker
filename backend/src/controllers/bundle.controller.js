@@ -1,5 +1,6 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
 
 export const getBundles = async (req, res, next) => {
   try {
@@ -9,7 +10,9 @@ export const getBundles = async (req, res, next) => {
     const limitNum = parseInt(limit, 10) || 50;
     const skip = (pageNum - 1) * limitNum;
 
-    const where = {};
+    const where = {
+      ...getCompanyFilter(req.user),
+    };
 
     if (status && status !== 'ALL') {
       where.status = status.toUpperCase();

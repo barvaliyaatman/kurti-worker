@@ -2,6 +2,7 @@ import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
 import { getSetting } from '../utils/configHelper.js';
+import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 
 export const getJobCards = async (req, res, next) => {
   try {
@@ -13,6 +14,7 @@ export const getJobCards = async (req, res, next) => {
 
     const where = {
       is_deleted: false,
+      ...getCompanyFilter(req.user),
     };
 
     if (status && status !== 'ALL') {
@@ -82,11 +84,11 @@ export const getJobCardById = async (req, res, next) => {
     });
 
     if (!jobCard || jobCard.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
+    }
+
+    if (!assertCompanyOwnership(jobCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
     }
 
     return ApiResponse.success({
@@ -159,6 +161,7 @@ export const createJobCard = async (req, res, next) => {
         status: 'CREATED',
         remarks: remarks ? remarks.trim() : null,
         created_by: req.user?.full_name || 'Factory Owner',
+        company_id: req.user.company_id || null,
         items: {
           create: items.map((item) => ({
             color: item.color.trim(),
@@ -167,9 +170,7 @@ export const createJobCard = async (req, res, next) => {
           })),
         },
       },
-      include: {
-        items: true,
-      },
+      include: { items: true },
     });
 
     // Generate System Notification
@@ -199,16 +200,14 @@ export const updateJobCard = async (req, res, next) => {
     const { id } = req.params;
     const { design_code, components, stitching_rate, priority, due_date, remarks, items } = req.body;
 
-    const existingCard = await prisma.jobCard.findUnique({
-      where: { id },
-    });
+    const existingCard = await prisma.jobCard.findUnique({ where: { id } });
 
     if (!existingCard || existingCard.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
+    }
+
+    if (!assertCompanyOwnership(existingCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
     }
 
     let compStr = existingCard.components;
@@ -268,16 +267,14 @@ export const sendToCutting = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const existingCard = await prisma.jobCard.findUnique({
-      where: { id },
-    });
+    const existingCard = await prisma.jobCard.findUnique({ where: { id } });
 
     if (!existingCard || existingCard.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
+    }
+
+    if (!assertCompanyOwnership(existingCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
     }
 
     if (existingCard.status !== 'CREATED') {
@@ -324,16 +321,14 @@ export const deleteJobCard = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const existingCard = await prisma.jobCard.findUnique({
-      where: { id },
-    });
+    const existingCard = await prisma.jobCard.findUnique({ where: { id } });
 
     if (!existingCard || existingCard.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
+    }
+
+    if (!assertCompanyOwnership(existingCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job card not found.' });
     }
 
     // STRICT BUSINESS RULE: Cannot delete if in active production

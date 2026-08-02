@@ -1,6 +1,7 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
+import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 
 export const getAssignments = async (req, res, next) => {
   try {
@@ -10,7 +11,9 @@ export const getAssignments = async (req, res, next) => {
     const limitNum = parseInt(limit, 10) || 50;
     const skip = (pageNum - 1) * limitNum;
 
-    const where = {};
+    const where = {
+      ...getCompanyFilter(req.user),
+    };
 
     if (status && status !== 'ALL') {
       where.status = status.toUpperCase();
@@ -92,11 +95,11 @@ export const getAssignmentById = async (req, res, next) => {
     });
 
     if (!assignment) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Assignment not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Assignment not found.' });
+    }
+
+    if (!assertCompanyOwnership(assignment, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Assignment not found.' });
     }
 
     return ApiResponse.success({
@@ -122,11 +125,11 @@ export const createAssignment = async (req, res, next) => {
     });
 
     if (!bundle) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Bundle not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Bundle not found.' });
+    }
+
+    if (!assertCompanyOwnership(bundle, req.user)) {
+      return ApiResponse.error({ res, statusCode: 403, message: 'Bundle does not belong to your company.' });
     }
 
     const remainingSets = bundle.total_sets - bundle.assigned_sets;
@@ -171,6 +174,7 @@ export const createAssignment = async (req, res, next) => {
         status: 'ASSIGNED',
         assigned_by: req.user?.full_name || 'Factory Manager',
         remarks: remarks ? remarks.trim() : null,
+        company_id: req.user.company_id || null,
         history: {
           create: {
             action: 'ASSIGNED',

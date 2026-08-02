@@ -97,13 +97,17 @@ model User {
   password_reset_required Boolean    @default(false)
   role                    UserRole   @default(CUTTING_MASTER)
   status                  UserStatus @default(ACTIVE)
+  is_deleted              Boolean    @default(false)
+  deleted_at              DateTime?
   last_login              DateTime?
   company_id              String?
   company                 Company?   @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  created_by              String?    // ID of user who created this account
   created_at              DateTime   @default(now())
   updated_at              DateTime   @updatedAt
 
   @@index([company_id])
+  @@index([company_id, role, is_deleted])
   @@map("users")
 }
 
@@ -111,7 +115,7 @@ model Employee {
   id            String         @id @default(uuid())
   employee_code String         @unique
   employee_name String
-  phone         String         @unique
+  phone         String
   joining_date  DateTime
   status        EmployeeStatus @default(ACTIVE)
   notes         String?
@@ -127,6 +131,7 @@ model Employee {
   advances      EmployeeAdvance[]
   payments      EmployeePayment[]
 
+  @@unique([company_id, phone])
   @@index([status, is_deleted])
   @@index([company_id])
   @@map("employees")
@@ -356,7 +361,9 @@ model AuditLog {
   target_user String
   action      String
   ip_address  String?
+  company_id  String?  // null = Super Admin action, set = Owner action for their company
   created_at  DateTime @default(now())
 
+  @@index([company_id])
   @@map("audit_logs")
 }

@@ -22,7 +22,8 @@ import {
   Sparkles,
   Trash2,
   Building2,
-  Activity
+  Activity,
+  UserCog
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useConfig } from '../contexts/ConfigContext.jsx';
@@ -48,6 +49,7 @@ const ICON_MAP = {
   Building2,
   ShieldCheck,
   Activity,
+  UserCog,
 };
 
 const BREADCRUMB_MAP = {

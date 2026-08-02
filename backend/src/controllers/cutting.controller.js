@@ -1,6 +1,7 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
+import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 
 export const getCuttingQueue = async (req, res, next) => {
   try {
@@ -14,6 +15,7 @@ export const getCuttingQueue = async (req, res, next) => {
       status: {
         in: ['READY_FOR_CUTTING', 'CUTTING_IN_PROGRESS', 'CUTTING_COMPLETED'],
       },
+      ...getCompanyFilter(req.user),
     };
 
     if (status && status !== 'ALL') {
@@ -81,11 +83,11 @@ export const getCuttingDetails = async (req, res, next) => {
     });
 
     if (!jobCard) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job Card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
+    }
+
+    if (!assertCompanyOwnership(jobCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
     }
 
     // Parse design components
@@ -144,11 +146,11 @@ export const startCutting = async (req, res, next) => {
     });
 
     if (!jobCard) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job Card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
+    }
+
+    if (!assertCompanyOwnership(jobCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
     }
 
     // Parse design components
@@ -273,11 +275,11 @@ export const completeColorAndGenerateBundle = async (req, res, next) => {
     });
 
     if (!jobCard) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Job Card not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
+    }
+
+    if (!assertCompanyOwnership(jobCard, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
     }
 
     // Verify all components are COMPLETED
@@ -322,6 +324,7 @@ export const completeColorAndGenerateBundle = async (req, res, next) => {
           assigned_sets: 0,
           completed_sets: 0,
           status: 'READY_FOR_ASSIGNMENT',
+          company_id: jobCard.company_id || null,
         };
       });
 

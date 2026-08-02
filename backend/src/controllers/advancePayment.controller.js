@@ -1,6 +1,7 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
+import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
 
 export const getAdvancesOverview = async (req, res, next) => {
   try {
@@ -25,18 +26,18 @@ export const getAdvancesOverview = async (req, res, next) => {
       dateFilterClause = { advance_date: { gte: startOfLastMonth, lte: endOfLastMonth } };
     }
 
+    const companyFilter = getCompanyFilter(req.user);
+
     const advances = await prisma.employeeAdvance.findMany({
-      where: dateFilterClause,
+      where: { ...dateFilterClause, ...companyFilter },
       orderBy: { advance_date: 'desc' },
-      include: {
-        employee: true,
-      },
+      include: { employee: true },
     });
 
-    // Compute Factory-wide Summary Totals
-    const allAdvances = await prisma.employeeAdvance.findMany({});
-    const allPayments = await prisma.employeePayment.findMany({});
-    const allAssignments = await prisma.assignment.findMany({});
+    // Compute Factory-wide Summary Totals (scoped to company)
+    const allAdvances = await prisma.employeeAdvance.findMany({ where: companyFilter });
+    const allPayments = await prisma.employeePayment.findMany({ where: companyFilter });
+    const allAssignments = await prisma.assignment.findMany({ where: companyFilter });
 
     const totalAdvancesAmount = allAdvances.reduce((sum, a) => sum + a.amount, 0);
 

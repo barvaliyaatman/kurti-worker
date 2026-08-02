@@ -1,5 +1,6 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
 
 export const getPayrollDashboard = async (req, res, next) => {
   try {
@@ -9,8 +10,12 @@ export const getPayrollDashboard = async (req, res, next) => {
     const limitNum = parseInt(limit, 10) || 50;
     const skip = (pageNum - 1) * limitNum;
 
-    // Fetch all active/existing employees with assignments, advances, and payments
+    // Fetch all employees for this company with assignments, advances, and payments
     const employees = await prisma.employee.findMany({
+      where: {
+        is_deleted: false,
+        ...getCompanyFilter(req.user),
+      },
       orderBy: { employee_code: 'asc' },
       include: {
         assignments: {

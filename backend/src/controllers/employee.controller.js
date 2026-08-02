@@ -1,16 +1,17 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 
 export const getEmployees = async (req, res, next) => {
   try {
     const { search, status, sort = 'latest', page = 1, limit = 50 } = req.query;
-
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;
     const skip = (pageNum - 1) * limitNum;
 
     const where = {
       is_deleted: false,
+      ...getCompanyFilter(req.user),
     };
 
     if (status && status !== 'ALL') {
@@ -27,13 +28,9 @@ export const getEmployees = async (req, res, next) => {
     }
 
     let orderBy = { created_at: 'desc' };
-    if (sort === 'oldest') {
-      orderBy = { created_at: 'asc' };
-    } else if (sort === 'name') {
-      orderBy = { employee_name: 'asc' };
-    } else if (sort === 'code') {
-      orderBy = { employee_code: 'asc' };
-    }
+    if (sort === 'oldest') orderBy = { created_at: 'asc' };
+    else if (sort === 'name') orderBy = { employee_name: 'asc' };
+    else if (sort === 'code') orderBy = { employee_code: 'asc' };
 
     const [employees, total] = await Promise.all([
       prisma.employee.findMany({
@@ -42,9 +39,7 @@ export const getEmployees = async (req, res, next) => {
         skip,
         take: limitNum,
         include: {
-          _count: {
-            select: { assignments: true },
-          },
+          _count: { select: { assignments: true } },
         },
       }),
       prisma.employee.count({ where }),
@@ -76,26 +71,19 @@ export const getEmployeeById = async (req, res, next) => {
     const employee = await prisma.employee.findUnique({
       where: { id },
       include: {
-        assignments: {
-          include: { bundle: true },
-        },
+        assignments: { include: { bundle: true } },
       },
     });
 
     if (!employee || employee.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Employee not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
     }
 
-    return ApiResponse.success({
-      res,
-      statusCode: 200,
-      message: 'Employee details retrieved successfully.',
-      data: { employee },
-    });
+    if (!assertCompanyOwnership(employee, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
+    }
+
+    return ApiResponse.success({ res, statusCode: 200, message: 'Employee details retrieved successfully.', data: { employee } });
   } catch (error) {
     return next(error);
   }
@@ -104,31 +92,27 @@ export const getEmployeeById = async (req, res, next) => {
 export const createEmployee = async (req, res, next) => {
   try {
     const { employee_code, employee_name, phone, joining_date, notes } = req.body;
-
+    const companyId = req.user.company_id;
     const cleanCode = employee_code.trim().toUpperCase();
 
-    // Check unique employee code
-    const existingCode = await prisma.employee.findUnique({
-      where: { employee_code: cleanCode },
+    // Check unique employee code within company
+    const existingCode = await prisma.employee.findFirst({
+      where: { employee_code: cleanCode, is_deleted: false },
     });
     if (existingCode) {
-      return ApiResponse.error({
-        res,
-        statusCode: 409,
-        message: `Employee code '${cleanCode}' already exists.`,
-      });
+      return ApiResponse.error({ res, statusCode: 409, message: `Employee code '${cleanCode}' already exists.` });
     }
 
-    // Check unique phone number
-    const existingPhone = await prisma.employee.findUnique({
-      where: { phone: phone.trim() },
+    // Check unique phone within company (company-scoped unique constraint)
+    const existingPhone = await prisma.employee.findFirst({
+      where: {
+        phone: phone.trim(),
+        company_id: companyId || null,
+        is_deleted: false,
+      },
     });
     if (existingPhone) {
-      return ApiResponse.error({
-        res,
-        statusCode: 409,
-        message: `Phone number '${phone}' is already registered.`,
-      });
+      return ApiResponse.error({ res, statusCode: 409, message: `Phone number '${phone}' is already registered in your company.` });
     }
 
     const newEmployee = await prisma.employee.create({
@@ -139,15 +123,11 @@ export const createEmployee = async (req, res, next) => {
         joining_date: new Date(joining_date),
         status: 'ACTIVE',
         notes: notes ? notes.trim() : null,
+        company_id: companyId || null,
       },
     });
 
-    return ApiResponse.success({
-      res,
-      statusCode: 201,
-      message: 'Employee created successfully.',
-      data: { employee: newEmployee },
-    });
+    return ApiResponse.success({ res, statusCode: 201, message: 'Employee created successfully.', data: { employee: newEmployee } });
   } catch (error) {
     return next(error);
   }
@@ -158,28 +138,27 @@ export const updateEmployee = async (req, res, next) => {
     const { id } = req.params;
     const { employee_name, phone, joining_date, notes } = req.body;
 
-    const existingEmployee = await prisma.employee.findUnique({
-      where: { id },
-    });
+    const existingEmployee = await prisma.employee.findUnique({ where: { id } });
 
     if (!existingEmployee || existingEmployee.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Employee not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
+    }
+
+    if (!assertCompanyOwnership(existingEmployee, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
     }
 
     if (phone && phone.trim() !== existingEmployee.phone) {
-      const phoneTaken = await prisma.employee.findUnique({
-        where: { phone: phone.trim() },
+      const phoneTaken = await prisma.employee.findFirst({
+        where: {
+          phone: phone.trim(),
+          company_id: req.user.company_id || null,
+          is_deleted: false,
+          NOT: { id },
+        },
       });
       if (phoneTaken) {
-        return ApiResponse.error({
-          res,
-          statusCode: 409,
-          message: `Phone number '${phone}' is already registered to another worker.`,
-        });
+        return ApiResponse.error({ res, statusCode: 409, message: `Phone number '${phone}' is already registered to another worker.` });
       }
     }
 
@@ -193,12 +172,7 @@ export const updateEmployee = async (req, res, next) => {
       },
     });
 
-    return ApiResponse.success({
-      res,
-      statusCode: 200,
-      message: 'Employee details updated successfully.',
-      data: { employee: updatedEmployee },
-    });
+    return ApiResponse.success({ res, statusCode: 200, message: 'Employee details updated successfully.', data: { employee: updatedEmployee } });
   } catch (error) {
     return next(error);
   }
@@ -209,23 +183,19 @@ export const toggleEmployeeStatus = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    const existingEmployee = await prisma.employee.findUnique({
-      where: { id },
-    });
+    const existingEmployee = await prisma.employee.findUnique({ where: { id } });
 
     if (!existingEmployee || existingEmployee.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Employee not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
+    }
+
+    if (!assertCompanyOwnership(existingEmployee, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
     }
 
     const updatedEmployee = await prisma.employee.update({
       where: { id },
-      data: {
-        status: status.toUpperCase(),
-      },
+      data: { status: status.toUpperCase() },
     });
 
     return ApiResponse.success({
@@ -243,23 +213,17 @@ export const deleteEmployee = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const existingEmployee = await prisma.employee.findUnique({
-      where: { id },
-    });
+    const existingEmployee = await prisma.employee.findUnique({ where: { id } });
 
     if (!existingEmployee || existingEmployee.is_deleted) {
-      return ApiResponse.error({
-        res,
-        statusCode: 404,
-        message: 'Employee not found.',
-      });
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
     }
 
-    // STRICT BUSINESS RULE: Cannot delete worker with production history
-    const assignmentCount = await prisma.assignment.count({
-      where: { employee_id: id },
-    });
+    if (!assertCompanyOwnership(existingEmployee, req.user)) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Employee not found.' });
+    }
 
+    const assignmentCount = await prisma.assignment.count({ where: { employee_id: id } });
     if (assignmentCount > 0) {
       return ApiResponse.error({
         res,

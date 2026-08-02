@@ -1,5 +1,6 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
 
 export const getNotifications = async (req, res, next) => {
   try {
@@ -12,6 +13,7 @@ export const getNotifications = async (req, res, next) => {
 
     const whereClause = {
       OR: [{ user_role: 'ALL' }, { user_role: userRole }],
+      ...getCompanyFilter(req.user),
     };
 
     if (is_read !== undefined && is_read !== '') {
@@ -44,6 +46,7 @@ export const getNotifications = async (req, res, next) => {
       where: {
         OR: [{ user_role: 'ALL' }, { user_role: userRole }],
         is_read: false,
+        ...getCompanyFilter(req.user),
       },
     });
 
@@ -75,6 +78,7 @@ export const getUnreadCount = async (req, res, next) => {
       where: {
         OR: [{ user_role: 'ALL' }, { user_role: userRole }],
         is_read: false,
+        ...getCompanyFilter(req.user),
       },
     });
 
@@ -125,6 +129,7 @@ export const markAllAsRead = async (req, res, next) => {
       where: {
         OR: [{ user_role: 'ALL' }, { user_role: userRole }],
         is_read: false,
+        ...getCompanyFilter(req.user),
       },
       data: { is_read: true },
     });

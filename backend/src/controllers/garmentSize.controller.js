@@ -1,5 +1,6 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
 
 const DEFAULT_GARMENT_SIZES = [
   { size_name: 'XS', display_order: 1, is_active: true },
@@ -15,8 +16,9 @@ const DEFAULT_GARMENT_SIZES = [
 export const getGarmentSizes = async (req, res, next) => {
   try {
     const { active_only } = req.query;
+    const companyFilter = getCompanyFilter(req.user);
 
-    const where = {};
+    const where = { ...companyFilter };
     if (active_only === 'true') {
       where.is_active = true;
     }
@@ -26,10 +28,14 @@ export const getGarmentSizes = async (req, res, next) => {
       orderBy: { display_order: 'asc' },
     });
 
-    // Seed defaults if table is empty
+    // Seed defaults if table is empty for this company
     if (sizes.length === 0) {
+      const seedData = DEFAULT_GARMENT_SIZES.map(s => ({
+        ...s,
+        company_id: req.user.company_id || null,
+      }));
       await prisma.garmentSize.createMany({
-        data: DEFAULT_GARMENT_SIZES,
+        data: seedData,
         skipDuplicates: true,
       });
       sizes = await prisma.garmentSize.findMany({

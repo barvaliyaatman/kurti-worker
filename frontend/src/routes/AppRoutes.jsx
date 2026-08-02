@@ -37,6 +37,7 @@ import UserManagementPage from '../pages/super-admin/UserManagementPage.jsx';
 import SystemSettingsPage from '../pages/super-admin/SystemSettingsPage.jsx';
 import AuditLogsPage from '../pages/super-admin/AuditLogsPage.jsx';
 import ForcePasswordResetPage from '../pages/ForcePasswordResetPage.jsx';
+import CompanyUsersPage from '../pages/CompanyUsersPage.jsx';
 
 const SuperAdminRedirect = () => {
   const { user } = useAuth();
@@ -259,6 +260,14 @@ export const AppRoutes = () => {
           element={
             <RoleRoute allowedRoles={['OWNER']}>
               <ArchiveTrashPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path={ROUTES.COMPANY_USERS}
+          element={
+            <RoleRoute allowedRoles={['OWNER']}>
+              <CompanyUsersPage />
             </RoleRoute>
           }
         />
