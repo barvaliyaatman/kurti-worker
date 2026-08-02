@@ -57,7 +57,7 @@ const TABS = [
 ];
 
 export const EmployeeWorkspacePage = () => {
-  const { id } = useParams();
+  const { employeeId: id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
