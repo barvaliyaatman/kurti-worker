@@ -81,17 +81,6 @@ export const JobCardListPage = () => {
 
   const jobCards = data.jobCards || [];
 
-  // Automatically trigger Create Modal if URL has ?action=create query param
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('action') === 'create' && canManage) {
-      // Clear parameter to avoid opening modal repeatedly on subsequent renders
-      window.history.replaceState({}, document.title, window.location.pathname);
-      handleOpenAddModal();
-    }
-  }, [canManage]);
-
-
   // Create Job Card Mutation
   const createMutation = useMutation({
     mutationFn: (payload) => jobCardService.createJobCard(payload),

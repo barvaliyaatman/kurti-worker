@@ -324,10 +324,7 @@ export const EmployeeListPage = () => {
                     <EmployeeCard
                       key={emp.id}
                       employee={emp}
-                      onViewWorkspace={(e) => navigate(`/employees/${e.id}/workspace`)}
-                      onEdit={handleOpenEditModal}
-                      onToggleStatus={handleOpenConfirmToggle}
-                      onArchive={handleOpenArchiveDialog}
+                      onOpenWorkspace={(e) => navigate(`/employees/${e.id}/workspace`)}
                       canManage={canManage}
                     />
                   ))}

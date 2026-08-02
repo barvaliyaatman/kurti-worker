@@ -72,62 +72,14 @@ export const EmployeeCard = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-3 flex items-center justify-between gap-2">
-          {onOpenWorkspace && (
-            <button
-              onClick={() => onOpenWorkspace(employee)}
-              className="px-3 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs"
-            >
-              <LayoutDashboard className="w-3.5 h-3.5" />
-              <span>Workspace</span>
-            </button>
-          )}
-
-          <div className="flex items-center gap-1.5">
-            {onView && (
-              <button
-                onClick={() => onView(employee)}
-                className="px-2.5 py-1.5 text-xs font-bold text-factory-navy bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center gap-1 transition-colors"
-              >
-                <Eye className="w-3.5 h-3.5 text-brand-600" />
-                <span>Details</span>
-              </button>
-            )}
-
-            {canManage && (
-              <>
-                <button
-                  onClick={() => onEdit(employee)}
-                  className="px-2.5 py-1.5 text-xs font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg flex items-center gap-1 transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit</span>
-                </button>
-
-                <button
-                  onClick={() => onToggleStatus(employee)}
-                  className={`p-1.5 rounded-lg border text-xs font-bold transition-colors ${
-                    isActive
-                      ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                  }`}
-                  title={isActive ? 'Deactivate Employee' : 'Activate Employee'}
-                >
-                  <Power className="w-3.5 h-3.5" />
-                </button>
-
-                {onArchive && (
-                  <button
-                    onClick={() => onArchive(employee)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Archive Employee"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+        <div className="pt-3">
+          <button
+            onClick={() => onOpenWorkspace && onOpenWorkspace(employee)}
+            className="w-full h-11 bg-[#384CF0] hover:bg-[#2a3bdb] text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors shadow-sm active:scale-98"
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Open Employee</span>
+          </button>
         </div>
       </Card>
     </motion.div>

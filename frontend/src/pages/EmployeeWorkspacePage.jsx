@@ -15,8 +15,11 @@ import {
   Edit3,
   Plus,
   Package,
-  TrendingUp
+  TrendingUp,
+  Power,
+  Trash2
 } from 'lucide-react';
+
 import { useAuth } from '../hooks/useAuth.js';
 import { employeeWorkspaceService } from '../services/employeeWorkspaceService.js';
 import { assignmentService } from '../services/assignmentService.js';
@@ -29,6 +32,8 @@ import StatusBadge from '../components/ui/StatusBadge.jsx';
 import Avatar from '../components/ui/Avatar.jsx';
 import { CardSkeleton } from '../components/ui/LoadingSkeleton.jsx';
 import ErrorComponent from '../components/common/ErrorComponent.jsx';
+import ConfirmationDialog from '../components/ui/ConfirmationDialog.jsx';
+
 
 import CurrentWorkTab from '../components/employeeWorkspace/CurrentWorkTab.jsx';
 import CompletedWorkTab from '../components/employeeWorkspace/CompletedWorkTab.jsx';
@@ -67,6 +72,9 @@ export const EmployeeWorkspacePage = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [progressModalOpen, setProgressModalOpen] = useState(false);
   const [editEmployeeModalOpen, setEditEmployeeModalOpen] = useState(false);
+  const [isConfirmToggleOpen, setIsConfirmToggleOpen] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+
 
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
@@ -127,8 +135,66 @@ export const EmployeeWorkspacePage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['employeeWorkspace', id]);
       setEditEmployeeModalOpen(false);
+      toast.success('Worker details updated successfully!');
     },
   });
+
+  // Toggle Employee Status Mutation
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id: empId, status: nextStatus }) => employeeService.toggleEmployeeStatus(empId, nextStatus),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['employeeWorkspace', id]);
+      queryClient.invalidateQueries(['employees']);
+      toast.success(res.message || 'Worker status updated!');
+      setIsConfirmToggleOpen(false);
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Failed to toggle status');
+    },
+  });
+
+  // Archive / Soft Delete Employee Mutation
+  const archiveMutation = useMutation({
+    mutationFn: (empId) => employeeService.deleteEmployee(empId),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['employees']);
+      queryClient.invalidateQueries(['archivedRecords']);
+      toast.success(res.message || 'Worker moved to Trash Archive!');
+      setIsArchiveDialogOpen(false);
+      navigate('/employees');
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Failed to archive worker');
+      setIsArchiveDialogOpen(false);
+    },
+  });
+
+  const handleOpenConfirmToggle = () => {
+    setIsConfirmToggleOpen(true);
+  };
+
+  const handleOpenArchiveDialog = () => {
+    const assignmentCount = employee?._count?.assignments || activeAssignments.length + completedAssignments.length;
+    if (assignmentCount > 0) {
+      toast.error(`Employee '${employee?.employee_name}' has ${assignmentCount} production assignment history records and cannot be deleted. You may only Deactivate this employee.`);
+      return;
+    }
+    setIsArchiveDialogOpen(true);
+  };
+
+  const handleConfirmToggle = () => {
+    if (employee) {
+      const nextStatus = employee.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+      toggleStatusMutation.mutate({ id: employee.id, status: nextStatus });
+    }
+  };
+
+  const handleConfirmArchive = () => {
+    if (employee) {
+      archiveMutation.mutate(employee.id);
+    }
+  };
+
 
   const handleOpenProgressModal = (asgn) => {
     setSelectedAssignment(asgn);
@@ -253,6 +319,24 @@ export const EmployeeWorkspacePage = () => {
                   <Button
                     size="sm"
                     variant="secondary"
+                    icon={employee.status === 'ACTIVE' ? Power : CheckCircle2}
+                    onClick={handleOpenConfirmToggle}
+                    className={employee.status === 'ACTIVE' ? 'text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border-red-200' : 'text-emerald-600 hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'}
+                  >
+                    {employee.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={Trash2}
+                    onClick={handleOpenArchiveDialog}
+                    className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+                  >
+                    Delete
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
                     icon={CreditCard}
                     onClick={() => setAdvanceModalOpen(true)}
                   >
@@ -268,6 +352,7 @@ export const EmployeeWorkspacePage = () => {
                   </Button>
                 </div>
               )}
+
             </div>
           </Card>
 
@@ -446,8 +531,35 @@ export const EmployeeWorkspacePage = () => {
         employee={employee}
         isLoading={updateEmployeeMutation.isPending}
       />
+
+      {/* Status Toggle Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={isConfirmToggleOpen}
+        onClose={() => setIsConfirmToggleOpen(false)}
+        onConfirm={handleConfirmToggle}
+        title={employee?.status === 'ACTIVE' ? 'Deactivate Employee' : 'Activate Employee'}
+        message={`Are you sure you want to ${employee?.status === 'ACTIVE' ? 'deactivate' : 'activate'} '${employee?.employee_name}'?`}
+        confirmText={employee?.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+        cancelText="Cancel"
+        variant={employee?.status === 'ACTIVE' ? 'danger' : 'primary'}
+        isLoading={toggleStatusMutation.isPending}
+      />
+
+      {/* Archive / Soft Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={isArchiveDialogOpen}
+        onClose={() => setIsArchiveDialogOpen(false)}
+        onConfirm={handleConfirmArchive}
+        title="Archive Employee"
+        message={`This action will archive worker '${employee?.employee_name}'. It can be restored later from Trash Archive.`}
+        confirmText="Archive"
+        cancelText="Cancel"
+        variant="danger"
+        isLoading={archiveMutation.isPending}
+      />
     </div>
   );
 };
 
 export default EmployeeWorkspacePage;
+

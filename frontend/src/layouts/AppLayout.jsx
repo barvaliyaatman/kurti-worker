@@ -406,7 +406,7 @@ export const AppLayout = () => {
             {fabOpen && (
               <div className="flex flex-col items-end gap-2 mb-2">
                 <button
-                  onClick={() => { setFabOpen(false); navigate('/job-cards?action=create'); }}
+                  onClick={() => { setFabOpen(false); navigate('/job-cards'); }}
                   className="flex items-center gap-2 bg-white text-slate-800 px-3.5 py-2 rounded-full text-xs font-bold shadow-lg border border-slate-100"
                 >
                   <FileText className="w-4 h-4 text-[#384CF0]" /> New Job Card

@@ -150,7 +150,15 @@ export const getEmployeeSalaryDetails = async (req, res, next) => {
       },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,
@@ -244,7 +252,15 @@ export const disburseSalaryPayment = async (req, res, next) => {
       where: { id: employee_id },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,

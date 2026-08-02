@@ -28,7 +28,16 @@ export const getEmployeeWorkspace = async (req, res, next) => {
       },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    const { assertCompanyOwnership } = await import('../middleware/tenancy.middleware.js');
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,
@@ -257,7 +266,16 @@ export const getEmployeeSalary = async (req, res, next) => {
       },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    const { assertCompanyOwnership } = await import('../middleware/tenancy.middleware.js');
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,
@@ -329,7 +347,16 @@ export const createEmployeeAdvance = async (req, res, next) => {
       where: { id },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    const { assertCompanyOwnership } = await import('../middleware/tenancy.middleware.js');
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,
@@ -395,7 +422,16 @@ export const createEmployeePayment = async (req, res, next) => {
       where: { id },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    const { assertCompanyOwnership } = await import('../middleware/tenancy.middleware.js');
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,
@@ -439,7 +475,16 @@ export const getEmployeeTimeline = async (req, res, next) => {
       },
     });
 
-    if (!employee) {
+    if (!employee || employee.is_deleted) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Employee not found.',
+      });
+    }
+
+    const { assertCompanyOwnership } = await import('../middleware/tenancy.middleware.js');
+    if (!assertCompanyOwnership(employee, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,
