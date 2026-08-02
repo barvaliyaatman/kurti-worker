@@ -1,18 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Hash, Layers, Calendar, Plus, Trash2, CheckCircle2, Banknote, Shirt, Sparkles, ArrowLeft, X, Edit, ChevronDown, Check } from 'lucide-react';
+import { Hash, Layers, Calendar, Plus, Trash2, CheckCircle2, Banknote, Shirt, Sparkles, ArrowLeft, X, Edit, Check } from 'lucide-react';
 import { useConfig } from '../../contexts/ConfigContext.jsx';
 import { settingService } from '../../services/settingService.js';
 import Button from '../ui/Button.jsx';
 
 const COMPONENTS_LIST = ['Top', 'Pant', 'Top Aster', 'Pant Aster', 'Dupatta', 'Other'];
-
-// Predefined Mock Designs for select dropdown to make it look premium
-const POPULAR_DESIGNS = [
-  { code: 'KR-JAIPUR-01', name: 'Jaipuri Printed Anarkali', rate: 120, image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=100&auto=format&fit=crop&q=60' },
-  { code: 'KR-ROYAL-02', name: 'Royal Chikankari Kurti', rate: 140, image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=100&auto=format&fit=crop&q=60' },
-  { code: 'KR-DAILY-03', name: 'Daily Wear Cotton Kurta', rate: 95, image: 'https://images.unsplash.com/photo-1609357605129-26f69add5d6e?w=100&auto=format&fit=crop&q=60' },
-  { code: 'KR-PARTY-04', name: 'Heavy Embroidered Festive Set', rate: 180, image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=100&auto=format&fit=crop&q=60' }
-];
 
 export const JobCardFormModal = ({
   isOpen,
@@ -36,10 +28,6 @@ export const JobCardFormModal = ({
   const [priority, setPriority] = useState(defaultPriorityConfig);
   const [dueDate, setDueDate] = useState('');
   const [remarks, setRemarks] = useState('');
-
-  // Design selection
-  const [selectedDesign, setSelectedDesign] = useState(null);
-  const [showDesignDropdown, setShowDesignDropdown] = useState(false);
 
   // Design-wide Components Selection
   const [selectedComponents, setSelectedComponents] = useState([]);
@@ -67,10 +55,6 @@ export const JobCardFormModal = ({
           : new Date().toISOString().split('T')[0]
       );
       setRemarks(jobCard.remarks || '');
-
-      // Match design
-      const matched = POPULAR_DESIGNS.find(d => d.code === jobCard.design_code);
-      if (matched) setSelectedDesign(matched);
 
       if (jobCard.components) {
         const comps = typeof jobCard.components === 'string'
@@ -113,7 +97,6 @@ export const JobCardFormModal = ({
       setRemarks('');
       setSelectedComponents([]);
       setColorRows([]);
-      setSelectedDesign(null);
     }
     setFormError('');
   }, [jobCard, isOpen, config]);
@@ -167,13 +150,6 @@ export const JobCardFormModal = ({
       setColorRows(colorRows.map(r => r.id === editingRowId ? { ...r, color: sheetColorName.trim(), sizes: sheetSizes } : r));
     }
     setColorSheetOpen(false);
-  };
-
-  const handleSelectDesign = (d) => {
-    setSelectedDesign(d);
-    setDesignCode(d.code);
-    setStitchingRate(String(d.rate));
-    setShowDesignDropdown(false);
   };
 
   const handleSubmit = (e) => {
@@ -330,67 +306,32 @@ export const JobCardFormModal = ({
               </div>
             </div>
 
-            <div>
-              <label className="text-[11px] font-bold text-slate-500 block mb-1">Fabric & Production Remarks</label>
-              <input
-                type="text"
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                placeholder="Enter special notes..."
-                className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-[#384CF0] outline-none"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Design Code *</label>
+                <input
+                  type="text"
+                  value={designCode}
+                  onChange={(e) => setDesignCode(e.target.value)}
+                  placeholder="Enter Design Code"
+                  required
+                  className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 block mb-1">Fabric & Production Remarks</label>
+                <input
+                  type="text"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="Enter special notes..."
+                  className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:border-[#384CF0] outline-none"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* ═══ CARD 2: DESIGN SECTION ═══ */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs space-y-4">
-          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-[#384CF0]" /> Design Selection
-          </h3>
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowDesignDropdown(!showDesignDropdown)}
-              className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs font-bold text-left flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition-colors"
-            >
-              <span>{selectedDesign ? `${selectedDesign.code} - ${selectedDesign.name}` : 'Select Garment Design Code'}</span>
-              <ChevronDown className="w-4 h-4 text-slate-500" />
-            </button>
-
-            {showDesignDropdown && (
-              <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden divide-y divide-slate-100">
-                {POPULAR_DESIGNS.map((d) => (
-                  <button
-                    key={d.code}
-                    type="button"
-                    onClick={() => handleSelectDesign(d)}
-                    className="w-full p-3 flex items-center gap-3 text-left hover:bg-slate-50 transition-colors"
-                  >
-                    <img src={d.image} alt={d.name} className="w-10 h-10 object-cover rounded-lg shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-900 truncate">{d.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold">{d.code} • Rate: ₹{d.rate}</p>
-                    </div>
-                    {selectedDesign?.code === d.code && <Check className="w-4 h-4 text-[#384CF0]" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {selectedDesign && (
-            <div className="flex gap-3 p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl">
-              <img src={selectedDesign.image} alt={selectedDesign.name} className="w-14 h-14 object-cover rounded-xl shrink-0" />
-              <div className="flex-1 min-w-0">
-                <span className="text-[10px] bg-[#384CF0] text-white px-2 py-0.5 rounded-full font-bold uppercase">{selectedDesign.code}</span>
-                <h4 className="text-xs font-bold text-slate-800 mt-1 truncate">{selectedDesign.name}</h4>
-                <p className="text-[11px] text-slate-500 mt-0.5">Est. Stitching: ₹{stitchingRate}/pcs</p>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* ═══ CARD 3: COMPONENTS CHECKLIST ═══ */}
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-xs space-y-4">
