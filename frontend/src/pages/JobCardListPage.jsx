@@ -66,10 +66,6 @@ export const JobCardListPage = () => {
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const [selectedCardForArchive, setSelectedCardForArchive] = useState(null);
 
-  // Create Bundle Confirmation Modal State
-  const [isCreateBundleDialogOpen, setIsCreateBundleDialogOpen] = useState(false);
-  const [selectedCardForBundle, setSelectedCardForBundle] = useState(null);
-
   // Fetch Job Cards
   const {
     data = { jobCards: [], pagination: {} },
@@ -145,20 +141,24 @@ export const JobCardListPage = () => {
     },
   });
 
-  // Create Bundle Mutation
+  // Direct Create Bundle Mutation (No Confirmation Modal)
   const createBundleMutation = useMutation({
     mutationFn: (id) => bundleService.sendToBundle(id),
     onSuccess: (res) => {
       queryClient.invalidateQueries(['jobCards']);
       queryClient.invalidateQueries(['assignmentQueue']);
-      toast.success(res?.message || '✓ Bundle Created Successfully');
-      setIsCreateBundleDialogOpen(false);
-      setSelectedCardForBundle(null);
+      toast.success(res?.message || 'Bundle Created Successfully');
     },
     onError: (err) => {
       toast.error(err?.response?.data?.message || 'Bundle creation failed. Please try again.');
     },
   });
+
+  const handleCreateBundleDirectly = (card) => {
+    if (card?.id) {
+      createBundleMutation.mutate(card.id);
+    }
+  };
 
   const handleOpenAddModal = () => {
     setSelectedCardForEdit(null);
@@ -178,17 +178,6 @@ export const JobCardListPage = () => {
   const handleOpenSendDialog = (card) => {
     setSelectedCardForSend(card);
     setIsSendCuttingDialogOpen(true);
-  };
-
-  const handleOpenCreateBundleModal = (card) => {
-    setSelectedCardForBundle(card);
-    setIsCreateBundleDialogOpen(true);
-  };
-
-  const handleConfirmCreateBundle = () => {
-    if (selectedCardForBundle) {
-      createBundleMutation.mutate(selectedCardForBundle.id);
-    }
   };
 
   const handleOpenArchiveDialog = (card) => {
@@ -396,7 +385,7 @@ export const JobCardListPage = () => {
                       onView={handleOpenDetailsDrawer}
                       onEdit={handleOpenEditModal}
                       onSendToCutting={handleOpenSendDialog}
-                      onCreateBundle={handleOpenCreateBundleModal}
+                      onCreateBundle={handleCreateBundleDirectly}
                       onArchive={handleOpenArchiveDialog}
                       canManage={canManage}
                     />
@@ -427,7 +416,7 @@ export const JobCardListPage = () => {
                         if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
                           handleOpenSendDialog(card);
                         } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
-                          handleOpenCreateBundleModal(card);
+                          handleCreateBundleDirectly(card);
                         } else if (primaryAction.targetPath) {
                           navigate(primaryAction.targetPath);
                         } else {
@@ -532,7 +521,7 @@ export const JobCardListPage = () => {
         }}
         onCreateBundle={(card) => {
           setIsDetailsDrawerOpen(false);
-          handleOpenCreateBundleModal(card);
+          handleCreateBundleDirectly(card);
         }}
         canManage={canManage}
       />
@@ -563,22 +552,6 @@ export const JobCardListPage = () => {
         confirmVariant="primary"
         isLoading={sendToCuttingMutation.isPending}
         icon={Send}
-      />
-
-      {/* Create Bundle Confirmation Modal */}
-      <ConfirmationDialog
-        isOpen={isCreateBundleDialogOpen}
-        onClose={() => {
-          setIsCreateBundleDialogOpen(false);
-          setSelectedCardForBundle(null);
-        }}
-        onConfirm={handleConfirmCreateBundle}
-        title="Create Bundle"
-        message={`Are you sure you want to create the bundle for Job Card ${selectedCardForBundle?.job_card_number}?`}
-        confirmText="Create Bundle"
-        confirmVariant="primary"
-        isLoading={createBundleMutation.isPending}
-        icon={Layers}
       />
 
       {/* Archive / Delete Confirmation Dialog */}
