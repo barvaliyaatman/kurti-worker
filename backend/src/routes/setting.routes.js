@@ -9,6 +9,10 @@ import {
   getRolePermissions,
   downloadBackup,
 } from '../controllers/setting.controller.js';
+import {
+  getWorkflowSettings,
+  updateWorkflowSettings,
+} from '../controllers/workflowSetting.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authorizeRoles } from '../middleware/role.middleware.js';
 
@@ -72,5 +76,19 @@ router.get('/roles', authorizeRoles('OWNER', 'MANAGER'), getRolePermissions);
  * @access Owner
  */
 router.get('/backup', authorizeRoles('OWNER'), downloadBackup);
+
+/**
+ * @route GET /api/settings/workflow
+ * @desc Get company production workflow settings
+ * @access Owner, Manager, Cutting Master
+ */
+router.get('/workflow', authorizeRoles('OWNER', 'MANAGER', 'CUTTING_MASTER'), getWorkflowSettings);
+
+/**
+ * @route PUT /api/settings/workflow
+ * @desc Update company production workflow settings
+ * @access Owner
+ */
+router.put('/workflow', authorizeRoles('OWNER'), updateWorkflowSettings);
 
 export default router;

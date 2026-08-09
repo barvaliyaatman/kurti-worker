@@ -22,10 +22,14 @@ import StatusBadge from '../ui/StatusBadge.jsx';
 import { CardSkeleton } from '../ui/LoadingSkeleton.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import ErrorComponent from '../common/ErrorComponent.jsx';
+import { useConfig } from '../../contexts/ConfigContext.jsx';
 import DashboardCard from './DashboardCard.jsx';
 
 const ManagerDashboard = ({ greeting, userName, todayFormatted }) => {
   const navigate = useNavigate();
+  const { workflowSettings } = useConfig();
+  const skipCutting = Boolean(workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(workflowSettings?.skip_bundle);
 
   const {
     data: dashboard,
@@ -47,8 +51,8 @@ const ManagerDashboard = ({ greeting, userName, todayFormatted }) => {
 
   // Quick Actions
   const quickActions = [
-    { id: 'assign', label: 'Assign Work', desc: 'Assign bundles to workers', icon: UserCheck, path: '/assignments', bg: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200' },
-    { id: 'cutting', label: 'Cutting Queue', desc: 'View cutting progress', icon: Scissors, path: '/cutting', bg: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200' },
+    { id: 'assign', label: skipBundle ? 'Work Assignment' : 'Assign Work', desc: 'Assign work to workers', icon: UserCheck, path: '/assignments', bg: 'bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200' },
+    ...(!skipCutting ? [{ id: 'cutting', label: 'Cutting Queue', desc: 'View cutting progress', icon: Scissors, path: '/cutting', bg: 'bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-200' }] : []),
     { id: 'salary', label: 'Salary', desc: 'Process payments', icon: Banknote, path: '/salary', bg: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200' },
   ];
 
@@ -80,26 +84,30 @@ const ManagerDashboard = ({ greeting, userName, todayFormatted }) => {
 
       {!isLoading && !isError && (
         <>
-          {/* ═══ METRIC CARDS (6 cards, 3-column) ═══ */}
+          {/* ═══ METRIC CARDS (Filtered by Workflow Settings) ═══ */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
-            <DashboardCard
-              title="Cutting Completed"
-              value={metrics.cuttingCompletedCards ?? 0}
-              icon={CheckSquare}
-              badgeText="Ready"
-              status="completed"
-              iconBg="bg-emerald-50 text-emerald-600"
-              onClick={() => navigate('/cutting')}
-            />
-            <DashboardCard
-              title="Bundles Waiting"
-              value={metrics.bundlesWaiting ?? 0}
-              icon={Package}
-              badgeText="Unassigned"
-              status="warning"
-              iconBg="bg-amber-50 text-amber-600"
-              onClick={() => navigate('/assignments')}
-            />
+            {!skipCutting && (
+              <DashboardCard
+                title="Cutting Completed"
+                value={metrics.cuttingCompletedCards ?? 0}
+                icon={CheckSquare}
+                badgeText="Ready"
+                status="completed"
+                iconBg="bg-emerald-50 text-emerald-600"
+                onClick={() => navigate('/cutting')}
+              />
+            )}
+            {!skipBundle && (
+              <DashboardCard
+                title="Bundles Waiting"
+                value={metrics.bundlesWaiting ?? 0}
+                icon={Package}
+                badgeText="Unassigned"
+                status="warning"
+                iconBg="bg-amber-50 text-amber-600"
+                onClick={() => navigate('/assignments')}
+              />
+            )}
             <DashboardCard
               title="Active Assignments"
               value={metrics.activeAssignments ?? 0}

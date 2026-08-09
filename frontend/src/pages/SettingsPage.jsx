@@ -24,7 +24,11 @@ import {
   Edit,
   Trash2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  GitBranch,
+  ArrowRight,
+  Zap,
+  Lock
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { useConfig } from '../contexts/ConfigContext.jsx';
@@ -38,17 +42,18 @@ import { CardSkeleton } from '../components/ui/LoadingSkeleton.jsx';
 import GarmentSizeFormModal from '../components/settings/GarmentSizeFormModal.jsx';
 
 const ENTERPRISE_CATEGORIES = [
-  { id: 'company', label: '1. Company Settings', icon: Building2 },
-  { id: 'factory', label: '2. Factory Settings', icon: Factory },
-  { id: 'employee', label: '3. Employee Settings', icon: Users },
-  { id: 'job_card', label: '4. Job Card Settings', icon: FileText },
-  { id: 'bundle', label: '5. Bundle Settings', icon: Package },
-  { id: 'salary', label: '6. Salary Settings', icon: Banknote },
-  { id: 'notification', label: '7. Notification Settings', icon: Bell },
-  { id: 'garment_sizes', label: '8. Garment Sizes Master', icon: Ruler },
-  { id: 'preferences', label: '9. App Preferences', icon: Palette },
-  { id: 'number_series', label: '10. Number Series', icon: Hash },
-  { id: 'defaults', label: '11. Default Values', icon: Sliders },
+  { id: 'workflow', label: '1. Production Workflow Settings', icon: GitBranch },
+  { id: 'company', label: '2. Company Settings', icon: Building2 },
+  { id: 'factory', label: '3. Factory Settings', icon: Factory },
+  { id: 'employee', label: '4. Employee Settings', icon: Users },
+  { id: 'job_card', label: '5. Job Card Settings', icon: FileText },
+  { id: 'bundle', label: '6. Bundle Settings', icon: Package },
+  { id: 'salary', label: '7. Salary Settings', icon: Banknote },
+  { id: 'notification', label: '8. Notification Settings', icon: Bell },
+  { id: 'garment_sizes', label: '9. Garment Sizes Master', icon: Ruler },
+  { id: 'preferences', label: '10. App Preferences', icon: Palette },
+  { id: 'number_series', label: '11. Number Series', icon: Hash },
+  { id: 'defaults', label: '12. Default Values', icon: Sliders },
   { id: 'roles', label: 'Role & Permissions', icon: ShieldCheck },
   { id: 'backup', label: 'Backup & System Info', icon: Database },
 ];
@@ -59,14 +64,94 @@ export const SettingsPage = () => {
   const queryClient = useQueryClient();
 
   const isOwner = user?.role === 'OWNER';
-  const canManage = isOwner;
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const canManage = isOwner || isSuperAdmin;
 
-  const [activeCategory, setActiveCategory] = useState('company');
+  const [activeCategory, setActiveCategory] = useState('workflow');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Garment Size Modal State
   const [isSizeModalOpen, setIsSizeModalOpen] = useState(false);
   const [selectedSizeObj, setSelectedSizeObj] = useState(null);
+
+  // Fetch Production Workflow Settings
+  const {
+    data: workflowSettingsData = { skip_cutting: false, skip_bundle: false, direct_worker_assignment: false },
+    isLoading: isLoadingWorkflow,
+    refetch: refetchWorkflowSettings,
+  } = useQuery({
+    queryKey: ['productionWorkflowSettings'],
+    queryFn: () => settingService.getWorkflowSettings(),
+  });
+
+  const [localWorkflow, setLocalWorkflow] = useState(null);
+  const activeWorkflow = localWorkflow || workflowSettingsData;
+
+  // Workflow Update Mutation
+  const updateWorkflowMutation = useMutation({
+    mutationFn: (payload) => settingService.updateWorkflowSettings(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['productionWorkflowSettings']);
+      refetchConfig();
+      toast.success('Production workflow updated successfully.');
+      setLocalWorkflow(null);
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Failed to update workflow settings');
+    },
+  });
+
+  const handleToggleSkipCutting = (checked) => {
+    setLocalWorkflow((prev) => {
+      const current = prev || workflowSettingsData;
+      const newSkipCutting = checked;
+      let newSkipBundle = current.skip_bundle;
+      let newDirect = current.direct_worker_assignment;
+
+      if (newSkipCutting && newSkipBundle) {
+        newDirect = true;
+      }
+
+      return {
+        ...current,
+        skip_cutting: newSkipCutting,
+        skip_bundle: newSkipBundle,
+        direct_worker_assignment: newDirect,
+      };
+    });
+  };
+
+  const handleToggleSkipBundle = (checked) => {
+    setLocalWorkflow((prev) => {
+      const current = prev || workflowSettingsData;
+      const newSkipBundle = checked;
+      const newDirect = newSkipBundle;
+
+      return {
+        ...current,
+        skip_bundle: newSkipBundle,
+        direct_worker_assignment: newDirect,
+      };
+    });
+  };
+
+  const handleToggleDirectAssignment = (checked) => {
+    setLocalWorkflow((prev) => {
+      const current = prev || workflowSettingsData;
+      const newDirect = checked;
+      const newSkipBundle = newDirect;
+
+      return {
+        ...current,
+        skip_bundle: newSkipBundle,
+        direct_worker_assignment: newDirect,
+      };
+    });
+  };
+
+  const handleSaveWorkflow = () => {
+    updateWorkflowMutation.mutate(activeWorkflow);
+  };
 
   // Fetch System Settings
   const {
@@ -319,6 +404,216 @@ export const SettingsPage = () => {
 
           {/* FORM CONTENT */}
           <div className="lg:col-span-3 space-y-6">
+            {/* 0. PRODUCTION WORKFLOW SETTINGS */}
+            {activeCategory === 'workflow' && (
+              <div className="space-y-6">
+                <Card className="p-6 space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-extrabold text-factory-navy tracking-wider uppercase">
+                          Production Workflow Settings
+                        </h3>
+                        {!canManage && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
+                            <Lock className="w-3 h-3" /> View Only
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-factory-muted mt-1">
+                        Configure stage bypass rules for Job Cards, Cutting, and Worker Assignment specifically for your company.
+                      </p>
+                    </div>
+
+                    {canManage && (
+                      <Button
+                        variant="primary"
+                        icon={Save}
+                        onClick={handleSaveWorkflow}
+                        isLoading={updateWorkflowMutation.isPending}
+                      >
+                        Save Workflow Settings
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Checkboxes Options */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
+                      Workflow Configuration Options
+                    </h4>
+
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* Skip Cutting Option */}
+                      <div className={`p-4 rounded-xl border transition-all ${
+                        activeWorkflow.skip_cutting
+                          ? 'bg-brand-50/40 border-brand-300 shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(activeWorkflow.skip_cutting)}
+                            disabled={!canManage}
+                            onChange={(e) => handleToggleSkipCutting(e.target.checked)}
+                            className="mt-1 w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500 disabled:opacity-50"
+                          />
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-extrabold text-factory-navy">
+                                Skip Cutting
+                              </span>
+                              {activeWorkflow.skip_cutting && (
+                                <span className="text-[10px] font-extrabold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full">
+                                  ENABLED
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Allow Job Cards to bypass the Cutting stage.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Skip Bundle Option */}
+                      <div className={`p-4 rounded-xl border transition-all ${
+                        activeWorkflow.skip_bundle
+                          ? 'bg-brand-50/40 border-brand-300 shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(activeWorkflow.skip_bundle)}
+                            disabled={!canManage}
+                            onChange={(e) => handleToggleSkipBundle(e.target.checked)}
+                            className="mt-1 w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500 disabled:opacity-50"
+                          />
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-extrabold text-factory-navy">
+                                Skip Bundle
+                              </span>
+                              {activeWorkflow.skip_bundle && (
+                                <span className="text-[10px] font-extrabold text-brand-700 bg-brand-100 px-2 py-0.5 rounded-full">
+                                  ENABLED
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Allow work to go directly from Cutting to Worker Assignment.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+
+                      {/* Direct Worker Assignment Option */}
+                      <div className={`p-4 rounded-xl border transition-all ${
+                        activeWorkflow.direct_worker_assignment
+                          ? 'bg-emerald-50/40 border-emerald-300 shadow-xs'
+                          : 'bg-white border-slate-200 hover:border-slate-300'
+                      }`}>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(activeWorkflow.direct_worker_assignment)}
+                            disabled={!canManage}
+                            onChange={(e) => handleToggleDirectAssignment(e.target.checked)}
+                            className="mt-1 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 disabled:opacity-50"
+                          />
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-extrabold text-factory-navy">
+                                Direct Worker Assignment
+                              </span>
+                              {activeWorkflow.direct_worker_assignment && (
+                                <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                  ENABLED
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Allow eligible Job Cards to be assigned directly to workers.
+                            </p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Visual Workflow Preview Card */}
+                <Card className="p-6 space-y-4 bg-slate-900 text-white border-slate-800 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-200">
+                        Live Production Workflow Preview
+                      </h4>
+                    </div>
+                    <span className="text-[11px] font-extrabold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">
+                      {activeWorkflow.skip_cutting && activeWorkflow.skip_bundle
+                        ? 'Skip Cutting + Skip Bundle'
+                        : activeWorkflow.skip_cutting
+                        ? 'Skip Cutting'
+                        : activeWorkflow.skip_bundle
+                        ? 'Skip Bundle'
+                        : 'Normal Workflow'}
+                    </span>
+                  </div>
+
+                  {/* Workflow Diagram Rendering */}
+                  <div className="pt-2 pb-4">
+                    <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+                      {/* Step 1: Job Card */}
+                      <div className="flex items-center gap-3">
+                        <div className="px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-center shadow-md">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Stage 1</span>
+                          <span className="text-xs font-extrabold text-white">Job Card</span>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
+                      </div>
+
+                      {/* Step 2: Cutting (if not skipped) */}
+                      {!activeWorkflow.skip_cutting && (
+                        <div className="flex items-center gap-3">
+                          <div className="px-4 py-3 bg-brand-950 border border-brand-700 rounded-xl text-center shadow-md">
+                            <span className="text-[10px] font-bold text-brand-400 uppercase tracking-wider block">Stage 2</span>
+                            <span className="text-xs font-extrabold text-brand-200">Cutting</span>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
+                        </div>
+                      )}
+
+                      {/* Step 3: Bundle (if not skipped) */}
+                      {!activeWorkflow.skip_bundle && (
+                        <div className="flex items-center gap-3">
+                          <div className="px-4 py-3 bg-purple-950 border border-purple-700 rounded-xl text-center shadow-md">
+                            <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">
+                              {activeWorkflow.skip_cutting ? 'Stage 2' : 'Stage 3'}
+                            </span>
+                            <span className="text-xs font-extrabold text-purple-200">Bundle</span>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-slate-500 shrink-0" />
+                        </div>
+                      )}
+
+                      {/* Final Step: Worker Assignment / Direct Worker Assignment */}
+                      <div className="px-4 py-3 bg-emerald-950 border border-emerald-600 rounded-xl text-center shadow-md">
+                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
+                          Final Stage
+                        </span>
+                        <span className="text-xs font-extrabold text-emerald-200">
+                          {activeWorkflow.direct_worker_assignment ? 'Direct Worker Assignment' : 'Worker Assignment'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            )}
+
             {/* 1. COMPANY SETTINGS */}
             {activeCategory === 'company' && (
               <Card className="p-6 space-y-4">

@@ -39,6 +39,7 @@ export const prisma = basePrisma.$extends({
           'Notification',
           'SystemSetting',
           'GarmentSize',
+          'ProductionWorkflowSettings',
         ];
 
         if (modelsWithCompanyId.includes(model)) {

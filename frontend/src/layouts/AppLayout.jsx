@@ -81,12 +81,13 @@ export const AppLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout, sessionExpiredModalOpen, closeSessionExpiredModal } = useAuth();
-  const { config } = useConfig();
-  
+  const { config, workflowSettings } = useConfig();
+  const skipCutting = Boolean(workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(workflowSettings?.skip_bundle);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
-
 
   const displayAppName = config.company_name || APP_NAME;
   const displayFactoryName = config.factory_name || FACTORY_NAME;
@@ -97,11 +98,26 @@ export const AppLayout = () => {
   };
 
   const userRoleUpper = user?.role ? user.role.toUpperCase() : 'OWNER';
+  const isSuperAdmin = userRoleUpper === 'SUPER_ADMIN';
 
-  // Filter menu items strictly by user role
-  const filteredNavItems = NAVIGATION_ITEMS.filter((item) =>
-    item.allowedRoles.includes(userRoleUpper)
-  );
+  // Filter menu items strictly by user role AND company production workflow settings
+  const filteredNavItems = NAVIGATION_ITEMS.map((item) => {
+    if (item.id === 'assignments' && skipBundle) {
+      return { ...item, label: 'Work Assignment' };
+    }
+    return item;
+  }).filter((item) => {
+    // 1. Role Check
+    if (!item.allowedRoles.includes(userRoleUpper)) return false;
+
+    // 2. Company Workflow Rules (Non-super-admin)
+    if (!isSuperAdmin) {
+      if (item.id === 'cutting' && skipCutting) return false;
+      if (item.id === 'bundles' && skipBundle) return false;
+    }
+
+    return true;
+  });
 
   // Compute Breadcrumb Trail
   const currentPath = location.pathname;
@@ -114,20 +130,21 @@ export const AppLayout = () => {
     pageTitle = 'Cutting Progress Details';
   }
 
-  const isSuperAdmin = userRoleUpper === 'SUPER_ADMIN';
-
-  // Bottom Navigation Bar mapping for mobile (Dashboard, Job Cards, Cutting, Employees, More)
-  const mobileNavItems = isSuperAdmin ? [
-    { label: 'Dashboard', path: '/super-admin/dashboard', icon: Home },
-    { label: 'Companies', path: '/super-admin/companies', icon: Building2 },
-    { label: 'Owners', path: '/super-admin/owners', icon: ShieldCheck },
-    { label: 'Users', path: '/super-admin/users', icon: Users },
-  ] : [
-    { label: 'Dashboard', path: ROUTES.HOME, icon: Home },
-    { label: 'Job Cards', path: ROUTES.JOB_CARDS, icon: FileText, allowedRoles: ['OWNER', 'MANAGER'] },
-    { label: 'Cutting', path: ROUTES.CUTTING, icon: Scissors, allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'] },
-    { label: 'Employees', path: ROUTES.EMPLOYEES, icon: Users, allowedRoles: ['OWNER'] },
-  ].filter(item => !item.allowedRoles || item.allowedRoles.includes(userRoleUpper));
+  // Bottom Navigation Bar mapping for mobile
+  const mobileNavItems = isSuperAdmin
+    ? [
+        { label: 'Dashboard', path: '/super-admin/dashboard', icon: Home },
+        { label: 'Companies', path: '/super-admin/companies', icon: Building2 },
+        { label: 'Owners', path: '/super-admin/owners', icon: ShieldCheck },
+        { label: 'Users', path: '/super-admin/users', icon: Users },
+      ]
+    : [
+        { label: 'Dashboard', path: ROUTES.HOME, icon: Home },
+        { label: 'Job Cards', path: ROUTES.JOB_CARDS, icon: FileText, allowedRoles: ['OWNER', 'MANAGER'] },
+        ...(!skipCutting ? [{ label: 'Cutting', path: ROUTES.CUTTING, icon: Scissors, allowedRoles: ['OWNER', 'MANAGER', 'CUTTING_MASTER'] }] : []),
+        { label: skipBundle ? 'Assignment' : 'Assignments', path: '/assignments', icon: CheckSquare, allowedRoles: ['OWNER', 'MANAGER'] },
+        { label: 'Employees', path: ROUTES.EMPLOYEES, icon: Users, allowedRoles: ['OWNER'] },
+      ].filter((item) => !item.allowedRoles || item.allowedRoles.includes(userRoleUpper));
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row antialiased select-none font-sans pb-16 lg:pb-0">

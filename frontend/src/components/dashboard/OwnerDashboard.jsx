@@ -29,10 +29,14 @@ import StatusBadge from '../ui/StatusBadge.jsx';
 import { CardSkeleton } from '../ui/LoadingSkeleton.jsx';
 import EmptyState from '../common/EmptyState.jsx';
 import ErrorComponent from '../common/ErrorComponent.jsx';
+import { useConfig } from '../../contexts/ConfigContext.jsx';
 import DashboardCard from './DashboardCard.jsx';
 
 const OwnerDashboard = ({ greeting, userName, todayFormatted }) => {
   const navigate = useNavigate();
+  const { workflowSettings } = useConfig();
+  const skipCutting = Boolean(workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(workflowSettings?.skip_bundle);
 
   const {
     data: dashboard,
@@ -52,11 +56,11 @@ const OwnerDashboard = ({ greeting, userName, todayFormatted }) => {
   const recentJobCards = dashboard?.recentJobCards || [];
   const recentPayments = dashboard?.recentPayments || [];
 
-  // Quick Actions list - sleek & aligned near the top
+  // Quick Actions list - dynamically filtered by workflow settings
   const quickActions = [
     { id: 'add_jc', label: 'Create Job Card', icon: FilePlus, path: '/job-cards' },
     { id: 'add_emp', label: 'Register Employee', icon: UserPlus, path: '/employees' },
-    { id: 'cutting', label: 'Cutting Queue', icon: Scissors, path: '/cutting' },
+    ...(!skipCutting ? [{ id: 'cutting', label: 'Cutting Queue', icon: Scissors, path: '/cutting' }] : []),
     { id: 'salary', label: 'Process Payroll', icon: Banknote, path: '/salary' },
     { id: 'reports', label: 'Reports Panel', icon: BarChart3, path: '/reports' },
   ];
@@ -129,14 +133,18 @@ const OwnerDashboard = ({ greeting, userName, todayFormatted }) => {
           </div>
 
 
-          {/* ═══ 5 PRIMARY KPI CARDS (Optimized for mobile grid showing main 3, rest on desktop) ═══ */}
+          {/* ═══ PRIMARY KPI CARDS (Filtered by Workflow Settings) ═══ */}
           <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <DashboardCard title="Total Employees" value={metrics.totalEmployees ?? 0} icon={Users} badgeText="Active" status="active" iconBg="bg-blue-50 text-blue-600" onClick={() => navigate('/employees')} />
             <DashboardCard title="Active Job Cards" value={metrics.activeJobCards ?? 0} icon={FileText} badgeText="In Progress" status="active" iconBg="bg-indigo-50 text-indigo-600" onClick={() => navigate('/job-cards')} />
-            <DashboardCard title="Ready for Cutting" value={metrics.readyForCutting ?? 0} icon={Scissors} badgeText="Queue" status="warning" iconBg="bg-amber-50 text-amber-600" onClick={() => navigate('/cutting')} />
-            <div className="hidden sm:block">
-              <DashboardCard title="Pending Bundles" value={metrics.pendingBundles ?? 0} icon={Layers} badgeText="Unassigned" status="pending" iconBg="bg-rose-50 text-rose-600" onClick={() => navigate('/assignments')} />
-            </div>
+            {!skipCutting && (
+              <DashboardCard title="Ready for Cutting" value={metrics.readyForCutting ?? 0} icon={Scissors} badgeText="Queue" status="warning" iconBg="bg-amber-50 text-amber-600" onClick={() => navigate('/cutting')} />
+            )}
+            {!skipBundle && (
+              <div className="hidden sm:block">
+                <DashboardCard title="Pending Bundles" value={metrics.pendingBundles ?? 0} icon={Layers} badgeText="Unassigned" status="pending" iconBg="bg-rose-50 text-rose-600" onClick={() => navigate('/assignments')} />
+              </div>
+            )}
             <div className="hidden sm:block">
               <DashboardCard title="Salary Due" value={`₹${(metrics.pendingSalary ?? 0).toLocaleString('en-IN')}`} icon={Banknote} badgeText="Due" status="pending" iconBg="bg-red-50 text-red-600" onClick={() => navigate('/salary')} />
             </div>

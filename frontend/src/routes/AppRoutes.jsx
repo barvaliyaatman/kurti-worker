@@ -38,6 +38,7 @@ import SystemSettingsPage from '../pages/super-admin/SystemSettingsPage.jsx';
 import AuditLogsPage from '../pages/super-admin/AuditLogsPage.jsx';
 import ForcePasswordResetPage from '../pages/ForcePasswordResetPage.jsx';
 import CompanyUsersPage from '../pages/CompanyUsersPage.jsx';
+import { useConfig } from '../contexts/ConfigContext.jsx';
 
 const SuperAdminRedirect = () => {
   const { user } = useAuth();
@@ -52,6 +53,20 @@ const ForceResetRoute = ({ children }) => {
   const location = useLocation();
   if (isLoading) return <Loading fullScreen message="Verifying session..." />;
   if (!isAuthenticated) return <Navigate to={ROUTES.LOGIN} state={{ from: location }} replace />;
+  return children;
+};
+
+const WorkflowRoute = ({ stage, children }) => {
+  const { workflowSettings } = useConfig();
+  const { user } = useAuth();
+  if (user?.role === 'SUPER_ADMIN') return children;
+
+  if (stage === 'cutting' && workflowSettings?.skip_cutting) {
+    return <Navigate to={ROUTES.FORBIDDEN} replace />;
+  }
+  if (stage === 'bundles' && workflowSettings?.skip_bundle) {
+    return <Navigate to={ROUTES.FORBIDDEN} replace />;
+  }
   return children;
 };
 
@@ -179,7 +194,9 @@ export const AppRoutes = () => {
           path={ROUTES.CUTTING}
           element={
             <RoleRoute allowedRoles={['OWNER', 'MANAGER', 'CUTTING_MASTER']}>
-              <CuttingListPage />
+              <WorkflowRoute stage="cutting">
+                <CuttingListPage />
+              </WorkflowRoute>
             </RoleRoute>
           }
         />
@@ -187,7 +204,9 @@ export const AppRoutes = () => {
           path="/cutting/:jobCardId"
           element={
             <RoleRoute allowedRoles={['OWNER', 'MANAGER', 'CUTTING_MASTER']}>
-              <CuttingDetailsPage />
+              <WorkflowRoute stage="cutting">
+                <CuttingDetailsPage />
+              </WorkflowRoute>
             </RoleRoute>
           }
         />
@@ -195,7 +214,9 @@ export const AppRoutes = () => {
           path={ROUTES.BUNDLES}
           element={
             <RoleRoute allowedRoles={['OWNER', 'MANAGER', 'CUTTING_MASTER']}>
-              <BundleListPage />
+              <WorkflowRoute stage="bundles">
+                <BundleListPage />
+              </WorkflowRoute>
             </RoleRoute>
           }
         />

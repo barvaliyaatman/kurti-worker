@@ -82,8 +82,9 @@ model Company {
   advances      EmployeeAdvance[]
   payments      EmployeePayment[]
   notifications Notification[]
-  settings      SystemSetting[]
-  sizes         GarmentSize[]
+  settings          SystemSetting[]
+  sizes             GarmentSize[]
+  workflow_settings ProductionWorkflowSettings?
 
   @@map("companies")
 }
@@ -367,3 +368,18 @@ model AuditLog {
   @@index([company_id])
   @@map("audit_logs")
 }
+
+model ProductionWorkflowSettings {
+  id                       String   @id @default(uuid())
+  company_id               String   @unique
+  skip_cutting             Boolean  @default(false)
+  skip_bundle              Boolean  @default(false)
+  direct_worker_assignment Boolean  @default(false)
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+
+  company                  Company  @relation(fields: [company_id], references: [id], onDelete: Cascade)
+
+  @@map("production_workflow_settings")
+}
+

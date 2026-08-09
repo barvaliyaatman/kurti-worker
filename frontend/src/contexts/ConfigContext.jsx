@@ -32,6 +32,16 @@ export const ConfigProvider = ({ children }) => {
     staleTime: 5 * 60 * 1000,
   });
 
+  const {
+    data: workflowSettings = { skip_cutting: false, skip_bundle: false, direct_worker_assignment: false },
+    isLoading: isLoadingWorkflow,
+    refetch: refetchWorkflow,
+  } = useQuery({
+    queryKey: ['productionWorkflowSettings'],
+    queryFn: () => settingService.getWorkflowSettings(),
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Extract size_name array sorted by display_order
   const garmentSizeNames = sizesData.map((s) => s.size_name);
   const fallbackSizes = garmentSizeNames.length > 0 ? garmentSizeNames : ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -39,6 +49,7 @@ export const ConfigProvider = ({ children }) => {
   const refetchConfig = () => {
     refetchSettings();
     refetchSizes();
+    refetchWorkflow();
   };
 
   const value = {
@@ -46,7 +57,8 @@ export const ConfigProvider = ({ children }) => {
     categories: data.categories || {},
     garmentSizes: fallbackSizes,
     garmentSizeObjects: sizesData,
-    isLoading: isLoadingSettings || isLoadingSizes,
+    workflowSettings,
+    isLoading: isLoadingSettings || isLoadingSizes || isLoadingWorkflow,
     refetchConfig,
   };
 
