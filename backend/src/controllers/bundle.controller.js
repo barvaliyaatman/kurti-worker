@@ -1,6 +1,6 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
-import { getCompanyFilter } from '../middleware/tenancy.middleware.js';
+import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 
 export const getBundles = async (req, res, next) => {
   try {
