@@ -159,6 +159,8 @@ export const createJobCard = async (req, res, next) => {
       });
     }
 
+    const skipCutting = Boolean(workflowSettings?.skip_cutting);
+    const skipBundle = Boolean(workflowSettings?.skip_bundle);
     const initialStatus = getInitialJobCardStatus(workflowSettings);
 
     const newJobCard = await prisma.jobCard.create({
@@ -171,6 +173,8 @@ export const createJobCard = async (req, res, next) => {
         priority: finalPriority,
         due_date: calculatedDueDate,
         status: initialStatus,
+        skip_cutting: skipCutting,
+        skip_bundle: skipBundle,
         remarks: remarks ? remarks.trim() : null,
         created_by: req.user?.full_name || 'Factory Owner',
         company_id: req.user.company_id || null,
@@ -184,6 +188,12 @@ export const createJobCard = async (req, res, next) => {
       },
       include: { items: true },
     });
+
+    // If cutting is skipped, generate bundles immediately from Color + Size breakdown
+    if (skipCutting) {
+      const { ensureBundlesGeneratedForJobCard } = await import('../utils/bundleHelper.js');
+      await ensureBundlesGeneratedForJobCard(newJobCard.id);
+    }
 
     // Generate System Notification
     await createSystemNotification({

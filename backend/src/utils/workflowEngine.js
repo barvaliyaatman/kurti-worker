@@ -46,3 +46,69 @@ export const validateStatusTransition = (workflowSettings = {}, currentStatus, t
 
   return { allowed: true };
 };
+
+export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => {
+  if (!jobCard) return { label: 'View Details', actionKey: 'VIEW', allowed: false };
+
+  const skipCutting = Boolean(jobCard?.skip_cutting ?? workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
+  const status = jobCard.status;
+
+  if (status === 'CREATED') {
+    if (skipCutting && skipBundle) {
+      return {
+        label: 'Assign Work',
+        actionKey: 'ASSIGN_WORK',
+        targetPath: `/job-cards/${jobCard.id}`,
+        allowed: true,
+      };
+    }
+    if (skipCutting) {
+      return {
+        label: 'Send to Bundle',
+        actionKey: 'SEND_TO_BUNDLE',
+        targetPath: `/job-cards/${jobCard.id}`,
+        allowed: true,
+      };
+    }
+    return {
+      label: 'Send to Cutting',
+      actionKey: 'SEND_TO_CUTTING',
+      nextStatus: 'READY_FOR_CUTTING',
+      allowed: true,
+    };
+  }
+
+  if (status === 'READY_FOR_BUNDLE' || status === 'CUTTING_COMPLETED') {
+    if (skipBundle) {
+      return {
+        label: 'Assign Work',
+        actionKey: 'ASSIGN_WORK',
+        targetPath: `/job-cards/${jobCard.id}`,
+        allowed: true,
+      };
+    }
+    return {
+      label: 'Send to Bundle',
+      actionKey: 'SEND_TO_BUNDLE',
+      targetPath: `/job-cards/${jobCard.id}`,
+      allowed: true,
+    };
+  }
+
+  if (status === 'READY_FOR_ASSIGNMENT') {
+    return {
+      label: 'Assign Work',
+      actionKey: 'ASSIGN_WORK',
+      targetPath: `/job-cards/${jobCard.id}`,
+      allowed: true,
+    };
+  }
+
+  return {
+    label: 'View Details',
+    actionKey: 'VIEW_DETAILS',
+    targetPath: `/job-cards/${jobCard.id}`,
+    allowed: true,
+  };
+};

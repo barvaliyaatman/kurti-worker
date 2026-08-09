@@ -150,6 +150,8 @@ model JobCard {
   priority        JobCardPriority @default(NORMAL)
   due_date        DateTime
   status          JobCardStatus   @default(CREATED)
+  skip_cutting    Boolean         @default(false)
+  skip_bundle     Boolean         @default(false)
   remarks         String?
   created_by      String?
   company_id      String?

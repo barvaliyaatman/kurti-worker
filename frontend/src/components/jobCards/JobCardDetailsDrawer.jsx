@@ -9,6 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { useConfig } from '../../contexts/ConfigContext.jsx';
 import { getJobCardPrimaryAction, getJobCardTimeline } from '../../utils/workflowEngine.js';
 
+import toast from 'react-hot-toast';
+import { bundleService } from '../../services/bundleService.js';
+
 export const JobCardDetailsDrawer = ({
   isOpen,
   onClose,
@@ -42,10 +45,18 @@ export const JobCardDetailsDrawer = ({
   const primaryAction = getJobCardPrimaryAction(workflowSettings, jobCard);
   const timelineSteps = getJobCardTimeline(workflowSettings, jobCard);
 
-  const handleActionClick = () => {
+  const handleActionClick = async () => {
     onClose();
     if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
       onSendToCutting(jobCard);
+    } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
+      try {
+        await bundleService.sendToBundle(jobCard.id);
+        toast.success('Job Card processed into Bundle workspace successfully.');
+      } catch (err) {
+        // Proceed to workspace where auto-generation fallback runs
+      }
+      navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {
       navigate(primaryAction.targetPath);
     }

@@ -64,3 +64,29 @@ export const getBundles = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const sendToBundle = async (req, res, next) => {
+  try {
+    const { job_card_id } = req.body;
+
+    if (!job_card_id) {
+      return ApiResponse.error({ res, statusCode: 400, message: 'Job Card ID is required.' });
+    }
+
+    const { ensureBundlesGeneratedForJobCard } = await import('../utils/bundleHelper.js');
+    const updatedJobCard = await ensureBundlesGeneratedForJobCard(job_card_id);
+
+    if (!updatedJobCard) {
+      return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
+    }
+
+    return ApiResponse.success({
+      res,
+      statusCode: 200,
+      message: 'Job Card processed into Bundle workspace successfully.',
+      data: { jobCard: updatedJobCard },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

@@ -136,6 +136,15 @@ export const getJobCardBundlesWorkspace = async (req, res, next) => {
       });
     }
 
+    // Auto-generate bundles if not already generated and eligible
+    if (jobCard.bundles.length === 0) {
+      const { ensureBundlesGeneratedForJobCard } = await import('../utils/bundleHelper.js');
+      const updatedCard = await ensureBundlesGeneratedForJobCard(id);
+      if (updatedCard) {
+        return getJobCardBundlesWorkspace(req, res, next);
+      }
+    }
+
     // Fetch all assignments for this Job Card's bundles
     const bundleIds = jobCard.bundles.map((b) => b.id);
     const assignments = await prisma.assignment.findMany({

@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { Calendar, Layers, Send, Eye, Edit3, Scissors, Trash2 } from 'lucide-react';
 import Card from '../ui/Card.jsx';
 import StatusBadge from '../ui/StatusBadge.jsx';
-
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useConfig } from '../../contexts/ConfigContext.jsx';
 import { getJobCardPrimaryAction } from '../../utils/workflowEngine.js';
+import { bundleService } from '../../services/bundleService.js';
 
 export const JobCardItemCard = ({
   jobCard,
@@ -48,9 +49,17 @@ export const JobCardItemCard = ({
     READY_FOR_ASSIGNMENT: 'completed',
   };
 
-  const handleActionClick = () => {
+  const handleActionClick = async () => {
     if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
       onSendToCutting(jobCard);
+    } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
+      try {
+        await bundleService.sendToBundle(jobCard.id);
+        toast.success('Job Card processed into Bundle workspace successfully.');
+      } catch (err) {
+        // Proceed to workspace where auto-generation fallback runs
+      }
+      navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {
       navigate(primaryAction.targetPath);
     } else {
