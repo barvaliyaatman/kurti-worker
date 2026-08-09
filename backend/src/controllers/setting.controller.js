@@ -118,12 +118,19 @@ export const updateSettings = async (req, res, next) => {
       });
     }
 
+    const companyId = req.user?.company_id || null;
+
     // Sequential loop to prevent Supabase connection pool exhaustion
     for (const [key, value] of Object.entries(settings)) {
       await prisma.systemSetting.upsert({
-        where: { key },
+        where: {
+          company_id_key: {
+            company_id: companyId,
+            key,
+          },
+        },
         update: { value: String(value) },
-        create: { key, value: String(value), category: 'GENERAL' },
+        create: { key, value: String(value), category: 'GENERAL', company_id: companyId },
       });
     }
 
@@ -222,12 +229,19 @@ export const updateCompanyProfile = async (req, res, next) => {
       address,
     };
 
+    const companyId = req.user?.company_id || null;
+
     for (const [key, val] of Object.entries(companyFields)) {
       if (val !== undefined) {
         await prisma.systemSetting.upsert({
-          where: { key },
+          where: {
+            company_id_key: {
+              company_id: companyId,
+              key,
+            },
+          },
           update: { value: String(val) },
-          create: { key, value: String(val), category: 'COMPANY' },
+          create: { key, value: String(val), category: 'COMPANY', company_id: companyId },
         });
       }
     }
