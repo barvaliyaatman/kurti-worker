@@ -73,17 +73,31 @@ export const sendToBundle = async (req, res, next) => {
       return ApiResponse.error({ res, statusCode: 400, message: 'Job Card ID is required.' });
     }
 
-    const { ensureBundlesGeneratedForJobCard } = await import('../utils/bundleHelper.js');
-    const updatedJobCard = await ensureBundlesGeneratedForJobCard(job_card_id);
+    const existingJobCard = await prisma.jobCard.findUnique({
+      where: { id: job_card_id },
+      include: { bundles: true },
+    });
 
-    if (!updatedJobCard) {
+    if (!existingJobCard || !assertCompanyOwnership(existingJobCard, req.user)) {
       return ApiResponse.error({ res, statusCode: 404, message: 'Job Card not found.' });
     }
+
+    // Duplicate Creation Protection
+    if (existingJobCard.bundles && existingJobCard.bundles.length > 0) {
+      return ApiResponse.error({
+        res,
+        statusCode: 400,
+        message: 'Bundle creation has already been completed for this Job Card.',
+      });
+    }
+
+    const { ensureBundlesGeneratedForJobCard } = await import('../utils/bundleHelper.js');
+    const updatedJobCard = await ensureBundlesGeneratedForJobCard(job_card_id);
 
     return ApiResponse.success({
       res,
       statusCode: 200,
-      message: 'Job Card processed into Bundle workspace successfully.',
+      message: 'Bundle Created Successfully',
       data: { jobCard: updatedJobCard },
     });
   } catch (error) {

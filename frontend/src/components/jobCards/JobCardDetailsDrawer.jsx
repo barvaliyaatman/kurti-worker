@@ -53,12 +53,13 @@ export const JobCardDetailsDrawer = ({
       onSendToCutting(jobCard);
     } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
       try {
-        await bundleService.sendToBundle(jobCard.id);
+        const res = await bundleService.sendToBundle(jobCard.id);
         queryClient.invalidateQueries(['jobCards']);
         queryClient.invalidateQueries(['assignmentQueue']);
-        toast.success('Bundle stage activated! Production Bundles created successfully.');
+        toast.success(res?.message || 'Bundle Created Successfully');
       } catch (err) {
-        // Proceed to workspace
+        toast.error(err?.response?.data?.message || 'Bundle creation failed');
+        return;
       }
       navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {
