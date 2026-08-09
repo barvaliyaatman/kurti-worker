@@ -3,6 +3,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
 import { getSetting } from '../utils/configHelper.js';
 import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
+import { getInitialJobCardStatus } from '../utils/workflowEngine.js';
 
 export const getJobCards = async (req, res, next) => {
   try {
@@ -149,6 +150,17 @@ export const createJobCard = async (req, res, next) => {
     const finalPriority = priority || defaultPriority;
     const finalStitchingRate = parseFloat(stitching_rate) || parseFloat(defaultStitchingRate);
 
+    // Fetch company workflow settings to resolve initial status dynamically
+    const companyId = req.user.company_id || null;
+    let workflowSettings = null;
+    if (companyId) {
+      workflowSettings = await prisma.productionWorkflowSettings.findUnique({
+        where: { company_id: companyId },
+      });
+    }
+
+    const initialStatus = getInitialJobCardStatus(workflowSettings);
+
     const newJobCard = await prisma.jobCard.create({
       data: {
         job_card_number: cleanNumber,
@@ -158,7 +170,7 @@ export const createJobCard = async (req, res, next) => {
         total_quantity: totalQuantity,
         priority: finalPriority,
         due_date: calculatedDueDate,
-        status: 'CREATED',
+        status: initialStatus,
         remarks: remarks ? remarks.trim() : null,
         created_by: req.user?.full_name || 'Factory Owner',
         company_id: req.user.company_id || null,

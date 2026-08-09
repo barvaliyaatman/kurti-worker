@@ -120,12 +120,17 @@ async function getOwnerDashboard(req, res) {
   const totalAdvGiven = totalAdvanceAll._sum.amount || 0;
   const pendingSalary = Math.max(0, totalGrossEarned - totalAdvGiven - totalPaid);
 
+  const workflowSettings = companyId
+    ? await prisma.productionWorkflowSettings.findUnique({ where: { company_id: companyId } })
+    : null;
+
   return ApiResponse.success({
     res,
     statusCode: 200,
     message: 'Owner dashboard retrieved successfully.',
     data: {
       role: 'OWNER',
+      workflowSettings,
       metrics: {
         totalEmployees,
         activeJobCards,

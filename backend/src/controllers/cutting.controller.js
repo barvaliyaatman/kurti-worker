@@ -2,6 +2,7 @@ import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
 import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
+import { getNextStageAfterCutting } from '../utils/workflowEngine.js';
 
 export const getCuttingQueue = async (req, res, next) => {
   try {
@@ -333,10 +334,20 @@ export const completeColorAndGenerateBundle = async (req, res, next) => {
         skipDuplicates: true,
       });
 
-      // Update Job Card status to CUTTING_COMPLETED
+      const companyId = req.user?.company_id || jobCard.company_id;
+      let workflowSettings = null;
+      if (companyId) {
+        workflowSettings = await prisma.productionWorkflowSettings.findUnique({
+          where: { company_id: companyId },
+        });
+      }
+
+      const nextStatus = getNextStageAfterCutting(workflowSettings);
+
+      // Update Job Card status based on company workflow settings
       await prisma.jobCard.update({
         where: { id: job_card_id },
-        data: { status: 'CUTTING_COMPLETED' },
+        data: { status: nextStatus },
       });
 
       // Generate System Notifications

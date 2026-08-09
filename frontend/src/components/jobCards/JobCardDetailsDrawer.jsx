@@ -5,6 +5,10 @@ import Button from '../ui/Button.jsx';
 import Table, { TableRow, TableCell } from '../ui/Table.jsx';
 import { Hash, Layers, Calendar, AlertCircle, Edit3, Send, Banknote } from 'lucide-react';
 
+import { useNavigate } from 'react-router-dom';
+import { useConfig } from '../../contexts/ConfigContext.jsx';
+import { getJobCardPrimaryAction, getJobCardTimeline } from '../../utils/workflowEngine.js';
+
 export const JobCardDetailsDrawer = ({
   isOpen,
   onClose,
@@ -14,9 +18,13 @@ export const JobCardDetailsDrawer = ({
   canManage = false,
   isSending = false,
 }) => {
+  const navigate = useNavigate();
+  const { workflowSettings } = useConfig();
+
   if (!jobCard) return null;
 
   const {
+    id,
     job_card_number,
     design_code,
     components,
@@ -31,6 +39,17 @@ export const JobCardDetailsDrawer = ({
   } = jobCard;
 
   const compsList = typeof components === 'string' ? components.split(',') : components || [];
+  const primaryAction = getJobCardPrimaryAction(workflowSettings, jobCard);
+  const timelineSteps = getJobCardTimeline(workflowSettings, jobCard);
+
+  const handleActionClick = () => {
+    onClose();
+    if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
+      onSendToCutting(jobCard);
+    } else if (primaryAction.targetPath) {
+      navigate(primaryAction.targetPath);
+    }
+  };
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title={`Job Card: ${job_card_number}`} maxWidth="max-w-2xl">
@@ -47,8 +66,35 @@ export const JobCardDetailsDrawer = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <StatusBadge status={status === 'READY_FOR_CUTTING' ? 'warning' : status === 'CUTTING_COMPLETED' ? 'completed' : 'draft'} label={status} />
+            <StatusBadge status={status === 'READY_FOR_CUTTING' ? 'warning' : 'completed'} label={status} />
             {priority === 'URGENT' && <StatusBadge status="danger" label="URGENT" />}
+          </div>
+        </div>
+
+        {/* Workflow Lifecycle Progress Bar */}
+        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+          <span className="text-xs font-bold text-factory-navy uppercase tracking-wider block">
+            Production Stage Flow
+          </span>
+          <div className="flex items-center gap-2">
+            {timelineSteps.map((step, idx) => (
+              <React.Fragment key={step.id}>
+                <div
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-center text-xs font-bold transition-colors ${
+                    step.current
+                      ? 'bg-brand-600 text-white shadow-xs'
+                      : step.done
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-slate-200 text-slate-500'
+                  }`}
+                >
+                  {step.label}
+                </div>
+                {idx < timelineSteps.length - 1 && (
+                  <span className="text-slate-300 font-extrabold text-xs">→</span>
+                )}
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
@@ -115,17 +161,14 @@ export const JobCardDetailsDrawer = ({
         {/* Action Controls */}
         {canManage && (
           <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2">
-            {status === 'CREATED' && (
+            {primaryAction.allowed && primaryAction.actionKey !== 'VIEW_DETAILS' && (
               <Button
                 variant="primary"
                 icon={Send}
                 isLoading={isSending}
-                onClick={() => {
-                  onClose();
-                  onSendToCutting(jobCard);
-                }}
+                onClick={handleActionClick}
               >
-                Send to Cutting Queue
+                {primaryAction.label}
               </Button>
             )}
 

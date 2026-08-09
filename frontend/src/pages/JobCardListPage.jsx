@@ -32,10 +32,13 @@ import ConfirmationDialog from '../components/ui/ConfirmationDialog.jsx';
 import JobCardFormModal from '../components/jobCards/JobCardFormModal.jsx';
 import JobCardDetailsDrawer from '../components/jobCards/JobCardDetailsDrawer.jsx';
 import JobCardItemCard from '../components/jobCards/JobCardItemCard.jsx';
+import { useConfig } from '../contexts/ConfigContext.jsx';
+import { getJobCardPrimaryAction } from '../utils/workflowEngine.js';
 
 export const JobCardListPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { workflowSettings } = useConfig();
 
   const userRole = user?.role ? user.role.toUpperCase() : 'OWNER';
   const isOwner = userRole === 'OWNER';
@@ -384,7 +387,17 @@ export const JobCardListPage = () => {
                   >
                     {jobCards.map((card) => {
                       const badgeInfo = statusBadgeConfig[card.status] || { variant: 'draft', label: card.status };
-                      const canSendCut = card.status === 'CREATED';
+                      const primaryAction = getJobCardPrimaryAction(workflowSettings, card);
+
+                      const handleActionClick = () => {
+                        if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
+                          handleOpenSendDialog(card);
+                        } else if (primaryAction.targetPath) {
+                          navigate(primaryAction.targetPath);
+                        } else {
+                          handleOpenDetailsDrawer(card);
+                        }
+                      };
 
                       return (
                         <TableRow key={card.id}>
@@ -431,14 +444,14 @@ export const JobCardListPage = () => {
                                     Edit
                                   </Button>
 
-                                  {canSendCut && (
+                                  {primaryAction.allowed && primaryAction.actionKey !== 'VIEW_DETAILS' && (
                                     <Button
                                       size="sm"
                                       variant="primary"
                                       icon={Send}
-                                      onClick={() => handleOpenSendDialog(card)}
+                                      onClick={handleActionClick}
                                     >
-                                      Send to Cutting
+                                      {primaryAction.label}
                                     </Button>
                                   )}
 

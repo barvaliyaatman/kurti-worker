@@ -4,6 +4,10 @@ import { Calendar, Layers, Send, Eye, Edit3, Scissors, Trash2 } from 'lucide-rea
 import Card from '../ui/Card.jsx';
 import StatusBadge from '../ui/StatusBadge.jsx';
 
+import { useNavigate } from 'react-router-dom';
+import { useConfig } from '../../contexts/ConfigContext.jsx';
+import { getJobCardPrimaryAction } from '../../utils/workflowEngine.js';
+
 export const JobCardItemCard = ({
   jobCard,
   onView,
@@ -12,6 +16,9 @@ export const JobCardItemCard = ({
   onArchive,
   canManage = false,
 }) => {
+  const navigate = useNavigate();
+  const { workflowSettings } = useConfig();
+
   const {
     id,
     job_card_number,
@@ -23,6 +30,7 @@ export const JobCardItemCard = ({
   } = jobCard;
 
   const isCreated = status === 'CREATED';
+  const primaryAction = getJobCardPrimaryAction(workflowSettings, jobCard);
 
   // Priority Color styling
   const priorityStyles = {
@@ -36,6 +44,18 @@ export const JobCardItemCard = ({
     READY_FOR_CUTTING: 'pending',
     CUTTING_IN_PROGRESS: 'warning',
     CUTTING_COMPLETED: 'completed',
+    READY_FOR_BUNDLE: 'completed',
+    READY_FOR_ASSIGNMENT: 'completed',
+  };
+
+  const handleActionClick = () => {
+    if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
+      onSendToCutting(jobCard);
+    } else if (primaryAction.targetPath) {
+      navigate(primaryAction.targetPath);
+    } else {
+      onView(jobCard);
+    }
   };
 
   return (
@@ -115,13 +135,13 @@ export const JobCardItemCard = ({
                 </button>
               )}
 
-              {isCreated && (
+              {primaryAction.allowed && primaryAction.actionKey !== 'VIEW_DETAILS' && (
                 <button
-                  onClick={() => onSendToCutting(jobCard)}
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors"
+                  onClick={handleActionClick}
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-lg flex items-center gap-1.5 shadow-xs transition-colors"
                 >
-                  <Scissors className="w-3.5 h-3.5" />
-                  <span>Send To Cutting</span>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{primaryAction.label}</span>
                 </button>
               )}
 
