@@ -73,7 +73,6 @@ export const getJobCardProductionState = (jobCard = {}, workflowSettings = {}) =
 
   const rawStatus = jobCard.status;
   const bundles = jobCard.bundles || [];
-  const items = jobCard.items || [];
 
   const totalBundles = bundles.length;
   const assignedBundles = bundles.filter((b) => b.assigned_sets > 0).length;
@@ -105,7 +104,7 @@ export const getJobCardProductionState = (jobCard = {}, workflowSettings = {}) =
   const stageLabel = stageLabels[currentStage] || currentStage;
 
   // Primary Action Resolver
-  const primaryAction = getJobCardPrimaryAction(workflowSettings, { ...jobCard, status: currentStage });
+  const primaryAction = getJobCardPrimaryAction(workflowSettings, { ...jobCard, status: currentStage, bundles });
 
   return {
     currentStage,
@@ -128,10 +127,20 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
   const status = jobCard.status;
   const totalBundles = jobCard.bundles?.length || 0;
 
+  // If bundles are already generated/activated or card is in assignment stage
+  if (totalBundles > 0 || status === 'READY_FOR_ASSIGNMENT' || status === 'IN_ASSIGNMENT') {
+    return {
+      label: 'Open Assignment Workspace',
+      actionKey: 'ASSIGN_WORK',
+      targetPath: `/job-cards/${jobCard.id}`,
+      allowed: true,
+    };
+  }
+
   if (status === 'CREATED' || status === 'READY_FOR_CUTTING') {
     if (skipCutting && skipBundle) {
       return {
-        label: 'Assign Work',
+        label: 'Open Assignment Workspace',
         actionKey: 'ASSIGN_WORK',
         targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
@@ -139,8 +148,8 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     }
     if (skipCutting) {
       return {
-        label: totalBundles > 0 ? 'Manage Bundles' : 'Create Bundle',
-        actionKey: 'OPEN_BUNDLE',
+        label: 'Create Bundle',
+        actionKey: 'SEND_TO_BUNDLE',
         targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
       };
@@ -156,24 +165,15 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
   if (status === 'READY_FOR_BUNDLE' || status === 'CUTTING_COMPLETED') {
     if (skipBundle) {
       return {
-        label: 'Assign Work',
+        label: 'Open Assignment Workspace',
         actionKey: 'ASSIGN_WORK',
         targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
       };
     }
     return {
-      label: totalBundles > 0 ? 'Manage Bundles' : 'Create Bundle',
-      actionKey: 'OPEN_BUNDLE',
-      targetPath: `/job-cards/${jobCard.id}`,
-      allowed: true,
-    };
-  }
-
-  if (status === 'READY_FOR_ASSIGNMENT' || status === 'IN_ASSIGNMENT') {
-    return {
-      label: 'Assign Work',
-      actionKey: 'ASSIGN_WORK',
+      label: 'Create Bundle',
+      actionKey: 'SEND_TO_BUNDLE',
       targetPath: `/job-cards/${jobCard.id}`,
       allowed: true,
     };
