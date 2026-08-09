@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { 
@@ -36,6 +37,7 @@ import { useConfig } from '../contexts/ConfigContext.jsx';
 import { getJobCardPrimaryAction } from '../utils/workflowEngine.js';
 
 export const JobCardListPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { workflowSettings } = useConfig();
