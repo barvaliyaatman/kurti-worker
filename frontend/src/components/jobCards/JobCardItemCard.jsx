@@ -4,6 +4,7 @@ import { Calendar, Layers, Send, Eye, Edit3, Scissors, Trash2 } from 'lucide-rea
 import Card from '../ui/Card.jsx';
 import StatusBadge from '../ui/StatusBadge.jsx';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useConfig } from '../../contexts/ConfigContext.jsx';
 import { getJobCardPrimaryAction } from '../../utils/workflowEngine.js';
@@ -49,15 +50,19 @@ export const JobCardItemCard = ({
     READY_FOR_ASSIGNMENT: 'completed',
   };
 
+  const queryClient = useQueryClient();
+
   const handleActionClick = async () => {
     if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
       onSendToCutting(jobCard);
     } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
       try {
         await bundleService.sendToBundle(jobCard.id);
-        toast.success('Job Card processed into Bundle workspace successfully.');
+        queryClient.invalidateQueries(['jobCards']);
+        queryClient.invalidateQueries(['assignmentQueue']);
+        toast.success('Bundle stage activated! Production Bundles created successfully.');
       } catch (err) {
-        // Proceed to workspace where auto-generation fallback runs
+        // Proceed to workspace
       }
       navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {

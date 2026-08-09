@@ -12,16 +12,14 @@ export const getJobCardsForAssignment = async (req, res, next) => {
     const limitNum = parseInt(limit, 10) || 50;
     const skip = (pageNum - 1) * limitNum;
 
-    // Fetch Job Cards that have generated bundles OR are ready for assignment
+    // Fetch Job Cards that have activated bundles OR skip bundle stage directly
     const jobCards = await prisma.jobCard.findMany({
       where: {
         is_deleted: false,
         ...companyFilter,
         OR: [
           { bundles: { some: {} } },
-          { status: 'READY_FOR_BUNDLE' },
-          { status: 'READY_FOR_ASSIGNMENT' },
-          { status: 'CUTTING_COMPLETED' },
+          { AND: [{ skip_bundle: true }, { status: 'READY_FOR_ASSIGNMENT' }] },
         ],
       },
       orderBy: { created_at: 'desc' },

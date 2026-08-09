@@ -78,8 +78,8 @@ export const ensureBundlesGeneratedForJobCard = async (jobCardId) => {
     });
   }
 
-  // Update Job Card status
-  const nextStatus = jobCard.skip_bundle ? 'READY_FOR_ASSIGNMENT' : 'READY_FOR_BUNDLE';
+  // Update Job Card status to READY_FOR_ASSIGNMENT after bundle creation is completed
+  const nextStatus = 'READY_FOR_ASSIGNMENT';
   const updatedJobCard = await prisma.jobCard.update({
     where: { id: jobCardId },
     data: { status: nextStatus },

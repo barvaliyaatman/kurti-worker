@@ -189,12 +189,6 @@ export const createJobCard = async (req, res, next) => {
       include: { items: true },
     });
 
-    // If cutting is skipped, generate bundles immediately from Color + Size breakdown
-    if (skipCutting) {
-      const { ensureBundlesGeneratedForJobCard } = await import('../utils/bundleHelper.js');
-      await ensureBundlesGeneratedForJobCard(newJobCard.id);
-    }
-
     // Generate System Notification
     await createSystemNotification({
       title: 'New Job Card Created',

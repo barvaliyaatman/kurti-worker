@@ -6,6 +6,7 @@ import Table, { TableRow, TableCell } from '../ui/Table.jsx';
 import { Hash, Layers, Calendar, AlertCircle, Edit3, Send, Banknote } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useConfig } from '../../contexts/ConfigContext.jsx';
 import { getJobCardPrimaryAction, getJobCardTimeline } from '../../utils/workflowEngine.js';
 
@@ -22,6 +23,7 @@ export const JobCardDetailsDrawer = ({
   isSending = false,
 }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { workflowSettings } = useConfig();
 
   if (!jobCard) return null;
@@ -52,9 +54,11 @@ export const JobCardDetailsDrawer = ({
     } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
       try {
         await bundleService.sendToBundle(jobCard.id);
-        toast.success('Job Card processed into Bundle workspace successfully.');
+        queryClient.invalidateQueries(['jobCards']);
+        queryClient.invalidateQueries(['assignmentQueue']);
+        toast.success('Bundle stage activated! Production Bundles created successfully.');
       } catch (err) {
-        // Proceed to workspace where auto-generation fallback runs
+        // Proceed to workspace
       }
       navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {
