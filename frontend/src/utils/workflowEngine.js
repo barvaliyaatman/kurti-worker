@@ -119,7 +119,6 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
       return {
         label: 'Create Bundle',
         actionKey: 'SEND_TO_BUNDLE',
-        targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
         variant: 'primary',
       };
@@ -146,7 +145,6 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     return {
       label: 'Create Bundle',
       actionKey: 'SEND_TO_BUNDLE',
-      targetPath: `/job-cards/${jobCard.id}`,
       allowed: true,
       variant: 'primary',
     };

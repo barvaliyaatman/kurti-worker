@@ -15,6 +15,7 @@ export const JobCardItemCard = ({
   onView,
   onEdit,
   onSendToCutting,
+  onCreateBundle,
   onArchive,
   canManage = false,
 }) => {
@@ -50,22 +51,13 @@ export const JobCardItemCard = ({
     READY_FOR_ASSIGNMENT: 'completed',
   };
 
-  const queryClient = useQueryClient();
-
-  const handleActionClick = async () => {
+  const handleActionClick = () => {
     if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
       onSendToCutting(jobCard);
     } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
-      try {
-        const res = await bundleService.sendToBundle(jobCard.id);
-        queryClient.invalidateQueries(['jobCards']);
-        queryClient.invalidateQueries(['assignmentQueue']);
-        toast.success(res?.message || 'Bundle Created Successfully');
-      } catch (err) {
-        toast.error(err?.response?.data?.message || 'Bundle creation failed');
-        return;
+      if (onCreateBundle) {
+        onCreateBundle(jobCard);
       }
-      navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {
       navigate(primaryAction.targetPath);
     } else {

@@ -19,6 +19,7 @@ export const JobCardDetailsDrawer = ({
   jobCard,
   onEdit,
   onSendToCutting,
+  onCreateBundle,
   canManage = false,
   isSending = false,
 }) => {
@@ -47,21 +48,14 @@ export const JobCardDetailsDrawer = ({
   const primaryAction = getJobCardPrimaryAction(workflowSettings, jobCard);
   const timelineSteps = getJobCardTimeline(workflowSettings, jobCard);
 
-  const handleActionClick = async () => {
+  const handleActionClick = () => {
     onClose();
     if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
       onSendToCutting(jobCard);
     } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
-      try {
-        const res = await bundleService.sendToBundle(jobCard.id);
-        queryClient.invalidateQueries(['jobCards']);
-        queryClient.invalidateQueries(['assignmentQueue']);
-        toast.success(res?.message || 'Bundle Created Successfully');
-      } catch (err) {
-        toast.error(err?.response?.data?.message || 'Bundle creation failed');
-        return;
+      if (onCreateBundle) {
+        onCreateBundle(jobCard);
       }
-      navigate(`/job-cards/${jobCard.id}`);
     } else if (primaryAction.targetPath) {
       navigate(primaryAction.targetPath);
     }

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth.js';
 import { jobCardService } from '../services/jobCardService.js';
+import { bundleService } from '../services/bundleService.js';
 import PageHeader from '../components/ui/PageHeader.jsx';
 import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
@@ -64,6 +65,10 @@ export const JobCardListPage = () => {
   // Archive / Soft Delete Modal State
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const [selectedCardForArchive, setSelectedCardForArchive] = useState(null);
+
+  // Create Bundle Confirmation Modal State
+  const [isCreateBundleDialogOpen, setIsCreateBundleDialogOpen] = useState(false);
+  const [selectedCardForBundle, setSelectedCardForBundle] = useState(null);
 
   // Fetch Job Cards
   const {
@@ -140,6 +145,21 @@ export const JobCardListPage = () => {
     },
   });
 
+  // Create Bundle Mutation
+  const createBundleMutation = useMutation({
+    mutationFn: (id) => bundleService.sendToBundle(id),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['jobCards']);
+      queryClient.invalidateQueries(['assignmentQueue']);
+      toast.success(res?.message || '✓ Bundle Created Successfully');
+      setIsCreateBundleDialogOpen(false);
+      setSelectedCardForBundle(null);
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Bundle creation failed. Please try again.');
+    },
+  });
+
   const handleOpenAddModal = () => {
     setSelectedCardForEdit(null);
     setIsFormModalOpen(true);
@@ -158,6 +178,17 @@ export const JobCardListPage = () => {
   const handleOpenSendDialog = (card) => {
     setSelectedCardForSend(card);
     setIsSendCuttingDialogOpen(true);
+  };
+
+  const handleOpenCreateBundleModal = (card) => {
+    setSelectedCardForBundle(card);
+    setIsCreateBundleDialogOpen(true);
+  };
+
+  const handleConfirmCreateBundle = () => {
+    if (selectedCardForBundle) {
+      createBundleMutation.mutate(selectedCardForBundle.id);
+    }
   };
 
   const handleOpenArchiveDialog = (card) => {
@@ -365,6 +396,7 @@ export const JobCardListPage = () => {
                       onView={handleOpenDetailsDrawer}
                       onEdit={handleOpenEditModal}
                       onSendToCutting={handleOpenSendDialog}
+                      onCreateBundle={handleOpenCreateBundleModal}
                       onArchive={handleOpenArchiveDialog}
                       canManage={canManage}
                     />
@@ -394,6 +426,8 @@ export const JobCardListPage = () => {
                       const handleActionClick = () => {
                         if (primaryAction.actionKey === 'SEND_TO_CUTTING') {
                           handleOpenSendDialog(card);
+                        } else if (primaryAction.actionKey === 'SEND_TO_BUNDLE') {
+                          handleOpenCreateBundleModal(card);
                         } else if (primaryAction.targetPath) {
                           navigate(primaryAction.targetPath);
                         } else {
@@ -479,6 +513,89 @@ export const JobCardListPage = () => {
           )}
         </>
       )}
+
+      {/* Details Drawer */}
+      <JobCardDetailsDrawer
+        isOpen={isDetailsDrawerOpen}
+        onClose={() => {
+          setIsDetailsDrawerOpen(false);
+          setSelectedCardForDetails(null);
+        }}
+        jobCard={selectedCardForDetails}
+        onEdit={(card) => {
+          setIsDetailsDrawerOpen(false);
+          handleOpenEditModal(card);
+        }}
+        onSendToCutting={(card) => {
+          setIsDetailsDrawerOpen(false);
+          handleOpenSendDialog(card);
+        }}
+        onCreateBundle={(card) => {
+          setIsDetailsDrawerOpen(false);
+          handleOpenCreateBundleModal(card);
+        }}
+        canManage={canManage}
+      />
+
+      {/* Form Modal */}
+      <JobCardFormModal
+        isOpen={isFormModalOpen}
+        onClose={() => {
+          setIsFormModalOpen(false);
+          setSelectedCardForEdit(null);
+        }}
+        onSubmit={handleFormSubmit}
+        initialData={selectedCardForEdit}
+        isSubmitting={createMutation.isPending || updateMutation.isPending}
+      />
+
+      {/* Send to Cutting Dialog */}
+      <ConfirmationDialog
+        isOpen={isSendCuttingDialogOpen}
+        onClose={() => {
+          setIsSendCuttingDialogOpen(false);
+          setSelectedCardForSend(null);
+        }}
+        onConfirm={handleConfirmSendCutting}
+        title="Send to Cutting Queue"
+        message={`Are you sure you want to send Job Card '${selectedCardForSend?.job_card_number}' to the Cutting Queue?`}
+        confirmText="Send to Cutting"
+        confirmVariant="primary"
+        isLoading={sendToCuttingMutation.isPending}
+        icon={Send}
+      />
+
+      {/* Create Bundle Confirmation Modal */}
+      <ConfirmationDialog
+        isOpen={isCreateBundleDialogOpen}
+        onClose={() => {
+          setIsCreateBundleDialogOpen(false);
+          setSelectedCardForBundle(null);
+        }}
+        onConfirm={handleConfirmCreateBundle}
+        title="Create Bundle"
+        message={`Are you sure you want to create the bundle for Job Card ${selectedCardForBundle?.job_card_number}?`}
+        confirmText="Create Bundle"
+        confirmVariant="primary"
+        isLoading={createBundleMutation.isPending}
+        icon={Layers}
+      />
+
+      {/* Archive / Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={isArchiveDialogOpen}
+        onClose={() => {
+          setIsArchiveDialogOpen(false);
+          setSelectedCardForArchive(null);
+        }}
+        onConfirm={handleConfirmArchive}
+        title="Archive Job Card"
+        message={`Are you sure you want to move Job Card '${selectedCardForArchive?.job_card_number}' to Trash Archive? It can be restored later from Archived Records.`}
+        confirmText="Archive"
+        confirmVariant="danger"
+        isLoading={archiveMutation.isPending}
+        icon={AlertTriangle}
+      />
     </div>
   );
 };
