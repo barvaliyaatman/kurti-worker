@@ -1,20 +1,26 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 
 export const getJobCardsForAssignment = async (req, res, next) => {
   try {
     const { search, status, page = 1, limit = 50 } = req.query;
+    const companyFilter = getCompanyFilter(req.user);
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = parseInt(limit, 10) || 50;
     const skip = (pageNum - 1) * limitNum;
 
-    // Fetch Job Cards that have generated bundles
+    // Fetch Job Cards that have generated bundles OR are ready for assignment
     const jobCards = await prisma.jobCard.findMany({
       where: {
-        bundles: {
-          some: {}, // Only job cards with at least one bundle
-        },
+        is_deleted: false,
+        ...companyFilter,
+        OR: [
+          { bundles: { some: {} } },
+          { status: 'READY_FOR_ASSIGNMENT' },
+          { status: 'CUTTING_COMPLETED' },
+        ],
       },
       orderBy: { created_at: 'desc' },
       include: {
@@ -122,7 +128,7 @@ export const getJobCardBundlesWorkspace = async (req, res, next) => {
       },
     });
 
-    if (!jobCard) {
+    if (!jobCard || !assertCompanyOwnership(jobCard, req.user)) {
       return ApiResponse.error({
         res,
         statusCode: 404,

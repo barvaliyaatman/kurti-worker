@@ -38,7 +38,8 @@ import UpdateProgressModal from '../components/assignments/UpdateProgressModal.j
 import AssignmentDetailsDrawer from '../components/assignments/AssignmentDetailsDrawer.jsx';
 
 export const JobCardAssignmentWorkspacePage = () => {
-  const { id } = useParams();
+  const { id, jobCardId } = useParams();
+  const targetId = id || jobCardId;
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -70,8 +71,9 @@ export const JobCardAssignmentWorkspacePage = () => {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ['jobCardAssignmentWorkspace', id],
-    queryFn: () => jobCardAssignmentService.getAssignmentWorkspace(id),
+    queryKey: ['jobCardAssignmentWorkspace', targetId],
+    queryFn: () => jobCardAssignmentService.getAssignmentWorkspace(targetId),
+    enabled: Boolean(targetId),
   });
 
   const jobCard = data?.jobCard;
