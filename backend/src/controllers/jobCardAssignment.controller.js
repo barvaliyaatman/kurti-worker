@@ -1,6 +1,7 @@
 import { prisma } from '../prisma/prisma.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
+import { getJobCardProductionState } from '../utils/workflowEngine.js';
 
 export const getJobCardsForAssignment = async (req, res, next) => {
   try {
@@ -18,6 +19,7 @@ export const getJobCardsForAssignment = async (req, res, next) => {
         ...companyFilter,
         OR: [
           { bundles: { some: {} } },
+          { status: 'READY_FOR_BUNDLE' },
           { status: 'READY_FOR_ASSIGNMENT' },
           { status: 'CUTTING_COMPLETED' },
         ],
@@ -34,18 +36,19 @@ export const getJobCardsForAssignment = async (req, res, next) => {
       },
     });
 
-    // Compute assignment metrics for each Job Card
+    // Compute synchronized assignment metrics for each Job Card
     const formattedJobCards = jobCards.map((jc) => {
-      const totalBundles = jc.bundles.length;
-      const assignedBundles = jc.bundles.filter((b) => b.assigned_sets > 0).length;
-      const completedBundles = jc.bundles.filter((b) => b.status === 'COMPLETED' || b.completed_sets >= b.total_sets).length;
-      const pendingBundles = jc.bundles.filter((b) => b.assigned_sets < b.total_sets).length;
+      const state = getJobCardProductionState(jc);
+      const totalBundles = state.totalBundles;
+      const assignedBundles = state.assignedBundles;
+      const completedBundles = state.completedBundles;
+      const pendingBundles = state.pendingBundles;
 
       const progressPercentage = totalBundles > 0
         ? Math.round((completedBundles / totalBundles) * 100)
         : 0;
 
-      let assignmentStatus = 'READY_FOR_ASSIGNMENT';
+      let assignmentStatus = state.currentStage;
       if (completedBundles === totalBundles && totalBundles > 0) {
         assignmentStatus = 'COMPLETED';
       } else if (assignedBundles > 0) {
@@ -60,7 +63,8 @@ export const getJobCardsForAssignment = async (req, res, next) => {
         total_quantity: jc.total_quantity,
         priority: jc.priority,
         due_date: jc.due_date,
-        status: jc.status,
+        status: state.currentStage,
+        stage_label: state.stageLabel,
         assignment_status: assignmentStatus,
         total_bundles: totalBundles,
         assigned_bundles: assignedBundles,
@@ -68,6 +72,8 @@ export const getJobCardsForAssignment = async (req, res, next) => {
         pending_bundles: pendingBundles,
         progress_percentage: progressPercentage,
         created_at: jc.created_at,
+        skip_cutting: jc.skip_cutting,
+        skip_bundle: jc.skip_bundle,
       };
     });
 

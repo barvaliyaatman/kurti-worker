@@ -2,7 +2,8 @@
  * Centralized Production Workflow Engine (Backend)
  *
  * Resolves initial production stage, status transitions, action labels,
- * and stage permissions based on Company Workflow Settings & Job Card snapshots.
+ * stage permissions, and overall production state synchronization based on
+ * Company Workflow Settings & Job Card snapshots.
  */
 
 export const getInitialJobCardStage = (workflowSettings = {}) => {
@@ -18,7 +19,6 @@ export const getInitialJobCardStage = (workflowSettings = {}) => {
   return 'READY_FOR_CUTTING';
 };
 
-// Backward compatibility alias
 export const getInitialJobCardStatus = getInitialJobCardStage;
 
 export const getNextStageAfterCutting = (workflowSettings = {}, jobCard = {}) => {
@@ -50,12 +50,83 @@ export const validateStatusTransition = (workflowSettings = {}, jobCard = {}, ta
   return { allowed: true };
 };
 
+/**
+ * Single Source of Truth: Centralized Job Card Production State Resolver
+ */
+export const getJobCardProductionState = (jobCard = {}, workflowSettings = {}) => {
+  if (!jobCard || !jobCard.id) {
+    return {
+      currentStage: 'UNKNOWN',
+      stageLabel: 'Unknown',
+      bundleStatus: 'PENDING',
+      assignmentStatus: 'PENDING',
+      totalBundles: 0,
+      assignedBundles: 0,
+      completedBundles: 0,
+      pendingBundles: 0,
+      primaryAction: { label: 'View Details', actionKey: 'VIEW', allowed: false },
+    };
+  }
+
+  const skipCutting = Boolean(jobCard?.skip_cutting ?? workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
+
+  const rawStatus = jobCard.status;
+  const bundles = jobCard.bundles || [];
+  const items = jobCard.items || [];
+
+  const totalBundles = bundles.length;
+  const assignedBundles = bundles.filter((b) => b.assigned_sets > 0).length;
+  const completedBundles = bundles.filter((b) => b.status === 'COMPLETED' || b.completed_sets >= b.total_sets).length;
+  const pendingBundles = bundles.filter((b) => b.assigned_sets < b.total_sets).length;
+
+  // Determine actual production stage
+  let currentStage = rawStatus;
+
+  if (rawStatus === 'CREATED') {
+    currentStage = getInitialJobCardStage(workflowSettings);
+  }
+
+  if (rawStatus === 'CUTTING_COMPLETED') {
+    currentStage = skipBundle ? 'READY_FOR_ASSIGNMENT' : 'READY_FOR_BUNDLE';
+  }
+
+  // Stage Label
+  const stageLabels = {
+    READY_FOR_CUTTING: 'Ready For Cutting',
+    CUTTING_IN_PROGRESS: 'Cutting In Progress',
+    CUTTING_COMPLETED: 'Cutting Completed',
+    READY_FOR_BUNDLE: 'Ready For Bundle',
+    READY_FOR_ASSIGNMENT: 'Ready For Assignment',
+    IN_ASSIGNMENT: 'In Assignment',
+    COMPLETED: 'Completed',
+  };
+
+  const stageLabel = stageLabels[currentStage] || currentStage;
+
+  // Primary Action Resolver
+  const primaryAction = getJobCardPrimaryAction(workflowSettings, { ...jobCard, status: currentStage });
+
+  return {
+    currentStage,
+    stageLabel,
+    skipCutting,
+    skipBundle,
+    totalBundles,
+    assignedBundles,
+    completedBundles,
+    pendingBundles,
+    primaryAction,
+  };
+};
+
 export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => {
   if (!jobCard) return { label: 'View Details', actionKey: 'VIEW', allowed: false };
 
   const skipCutting = Boolean(jobCard?.skip_cutting ?? workflowSettings?.skip_cutting);
   const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
   const status = jobCard.status;
+  const totalBundles = jobCard.bundles?.length || 0;
 
   if (status === 'CREATED' || status === 'READY_FOR_CUTTING') {
     if (skipCutting && skipBundle) {
@@ -68,7 +139,7 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     }
     if (skipCutting) {
       return {
-        label: 'Create Bundle',
+        label: totalBundles > 0 ? 'Manage Bundles' : 'Create Bundle',
         actionKey: 'OPEN_BUNDLE',
         targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
@@ -92,14 +163,14 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
       };
     }
     return {
-      label: 'Create Bundle',
+      label: totalBundles > 0 ? 'Manage Bundles' : 'Create Bundle',
       actionKey: 'OPEN_BUNDLE',
       targetPath: `/job-cards/${jobCard.id}`,
       allowed: true,
     };
   }
 
-  if (status === 'READY_FOR_ASSIGNMENT') {
+  if (status === 'READY_FOR_ASSIGNMENT' || status === 'IN_ASSIGNMENT') {
     return {
       label: 'Assign Work',
       actionKey: 'ASSIGN_WORK',

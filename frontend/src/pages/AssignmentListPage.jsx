@@ -54,6 +54,9 @@ export const AssignmentListPage = () => {
   const jobCards = data?.jobCards || [];
 
   const statusBadgeConfig = {
+    READY_FOR_CUTTING: { variant: 'pending', label: 'Ready For Cutting' },
+    CUTTING_IN_PROGRESS: { variant: 'warning', label: 'Cutting In Progress' },
+    READY_FOR_BUNDLE: { variant: 'completed', label: 'Ready For Bundle' },
     READY_FOR_ASSIGNMENT: { variant: 'active', label: 'Ready For Assignment' },
     IN_ASSIGNMENT: { variant: 'warning', label: 'In Assignment' },
     COMPLETED: { variant: 'completed', label: 'Completed' },
@@ -142,9 +145,9 @@ export const AssignmentListPage = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {jobCards.map((jc) => {
-                const badgeInfo = statusBadgeConfig[jc.assignment_status] || {
+                const badgeInfo = statusBadgeConfig[jc.status] || statusBadgeConfig[jc.assignment_status] || {
                   variant: 'draft',
-                  label: jc.assignment_status,
+                  label: jc.stage_label || jc.status,
                 };
 
                 return (
@@ -249,7 +252,7 @@ export const AssignmentListPage = () => {
                         icon={FolderOpen}
                         onClick={() => navigate(`/job-cards/${jc.id}`)}
                       >
-                        Open Assignment Workspace
+                        {jc.status === 'READY_FOR_BUNDLE' ? 'Open Bundle Workspace' : 'Open Assignment Workspace'}
                       </Button>
                     </div>
                   </Card>
