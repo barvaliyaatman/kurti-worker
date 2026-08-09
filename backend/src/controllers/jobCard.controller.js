@@ -4,6 +4,7 @@ import { createSystemNotification } from '../utils/notificationHelper.js';
 import { getSetting } from '../utils/configHelper.js';
 import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
 import { getInitialJobCardStage } from '../utils/workflowEngine.js';
+import { numberSeriesService } from '../services/numberSeriesService.js';
 
 export const getJobCards = async (req, res, next) => {
   try {
@@ -108,18 +109,29 @@ export const createJobCard = async (req, res, next) => {
     const { job_card_number, design_code, components, stitching_rate, priority, due_date, remarks, items } =
       req.body;
 
-    const cleanNumber = job_card_number.trim().toUpperCase();
+    let cleanNumber = job_card_number ? job_card_number.trim().toUpperCase() : null;
+
+    if (!cleanNumber) {
+      cleanNumber = await numberSeriesService.generateJobCardNumber();
+    }
 
     // Check unique Job Card Number
     const existing = await prisma.jobCard.findUnique({
       where: { job_card_number: cleanNumber },
     });
     if (existing) {
-      return ApiResponse.error({
-        res,
-        statusCode: 409,
-        message: `Job Card Number '${cleanNumber}' already exists.`,
+      // Auto-generate fresh sequence number if collision occurs
+      cleanNumber = await numberSeriesService.generateJobCardNumber();
+      const doubleCheck = await prisma.jobCard.findUnique({
+        where: { job_card_number: cleanNumber },
       });
+      if (doubleCheck) {
+        return ApiResponse.error({
+          res,
+          statusCode: 409,
+          message: `Job Card Number '${cleanNumber}' already exists. Please specify a unique number.`,
+        });
+      }
     }
 
     // Dynamic Setting Defaults from Config Engine
