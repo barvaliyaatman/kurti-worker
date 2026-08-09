@@ -2,10 +2,10 @@
  * Centralized Production Workflow Engine (Frontend)
  *
  * Resolves production stage flow, status transitions, action labels,
- * button rendering, and timeline steps based on Company Workflow Settings.
+ * button rendering, and timeline steps based on Company Workflow Settings & Job Card snapshots.
  */
 
-export const getInitialJobCardStatus = (workflowSettings = {}) => {
+export const getInitialJobCardStage = (workflowSettings = {}) => {
   const skipCutting = Boolean(workflowSettings?.skip_cutting);
   const skipBundle = Boolean(workflowSettings?.skip_bundle);
 
@@ -15,17 +15,19 @@ export const getInitialJobCardStatus = (workflowSettings = {}) => {
   if (skipCutting) {
     return 'READY_FOR_BUNDLE';
   }
-  return 'CREATED';
+  return 'READY_FOR_CUTTING';
 };
+
+export const getInitialJobCardStatus = getInitialJobCardStage;
 
 export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => {
   if (!jobCard) return { label: 'View Details', actionKey: 'VIEW', allowed: false };
 
-  const skipCutting = Boolean(workflowSettings?.skip_cutting);
-  const skipBundle = Boolean(workflowSettings?.skip_bundle);
+  const skipCutting = Boolean(jobCard?.skip_cutting ?? workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
   const status = jobCard.status;
 
-  if (status === 'CREATED') {
+  if (status === 'CREATED' || status === 'READY_FOR_CUTTING') {
     if (skipCutting && skipBundle) {
       return {
         label: 'Assign Work',
@@ -37,9 +39,9 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     }
     if (skipCutting) {
       return {
-        label: 'Send to Bundle',
-        actionKey: 'SEND_TO_BUNDLE',
-        targetPath: '/assignments',
+        label: 'Create Bundle',
+        actionKey: 'OPEN_BUNDLE',
+        targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
         variant: 'primary',
       };
@@ -53,35 +55,7 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     };
   }
 
-  if (status === 'READY_FOR_CUTTING' || status === 'CUTTING_IN_PROGRESS') {
-    if (skipCutting) {
-      if (skipBundle) {
-        return {
-          label: 'Assign Work',
-          actionKey: 'ASSIGN_WORK',
-          targetPath: `/job-cards/${jobCard.id}`,
-          allowed: true,
-          variant: 'primary',
-        };
-      }
-      return {
-        label: 'Send to Bundle',
-        actionKey: 'SEND_TO_BUNDLE',
-        targetPath: '/assignments',
-        allowed: true,
-        variant: 'primary',
-      };
-    }
-    return {
-      label: 'View Cutting Queue',
-      actionKey: 'VIEW_CUTTING',
-      targetPath: `/cutting/${jobCard.id}`,
-      allowed: true,
-      variant: 'outline',
-    };
-  }
-
-  if (status === 'CUTTING_COMPLETED' || status === 'READY_FOR_BUNDLE') {
+  if (status === 'READY_FOR_BUNDLE' || status === 'CUTTING_COMPLETED') {
     if (skipBundle) {
       return {
         label: 'Assign Work',
@@ -92,8 +66,8 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
       };
     }
     return {
-      label: 'Send to Bundle',
-      actionKey: 'SEND_TO_BUNDLE',
+      label: 'Create Bundle',
+      actionKey: 'OPEN_BUNDLE',
       targetPath: `/job-cards/${jobCard.id}`,
       allowed: true,
       variant: 'primary',
@@ -110,6 +84,16 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     };
   }
 
+  if (status === 'CUTTING_IN_PROGRESS') {
+    return {
+      label: 'Cutting Queue',
+      actionKey: 'VIEW_CUTTING',
+      targetPath: `/cutting/${jobCard.id}`,
+      allowed: true,
+      variant: 'outline',
+    };
+  }
+
   return {
     label: 'View Details',
     actionKey: 'VIEW_DETAILS',
@@ -120,8 +104,8 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
 };
 
 export const getJobCardTimeline = (workflowSettings = {}, jobCard = {}) => {
-  const skipCutting = Boolean(workflowSettings?.skip_cutting);
-  const skipBundle = Boolean(workflowSettings?.skip_bundle);
+  const skipCutting = Boolean(jobCard?.skip_cutting ?? workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
   const status = jobCard?.status || 'CREATED';
 
   const isCuttingDone =

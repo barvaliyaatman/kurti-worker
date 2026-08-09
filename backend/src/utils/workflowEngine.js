@@ -1,11 +1,11 @@
 /**
  * Centralized Production Workflow Engine (Backend)
  *
- * Resolves production stage flow, initial statuses, status transitions,
- * action labels, and stage permissions based on Company Workflow Settings.
+ * Resolves initial production stage, status transitions, action labels,
+ * and stage permissions based on Company Workflow Settings & Job Card snapshots.
  */
 
-export const getInitialJobCardStatus = (workflowSettings = {}) => {
+export const getInitialJobCardStage = (workflowSettings = {}) => {
   const skipCutting = Boolean(workflowSettings?.skip_cutting);
   const skipBundle = Boolean(workflowSettings?.skip_bundle);
 
@@ -15,32 +15,35 @@ export const getInitialJobCardStatus = (workflowSettings = {}) => {
   if (skipCutting) {
     return 'READY_FOR_BUNDLE';
   }
-  return 'CREATED';
+  return 'READY_FOR_CUTTING';
 };
 
-export const getNextStageAfterCutting = (workflowSettings = {}) => {
-  const skipBundle = Boolean(workflowSettings?.skip_bundle);
+// Backward compatibility alias
+export const getInitialJobCardStatus = getInitialJobCardStage;
+
+export const getNextStageAfterCutting = (workflowSettings = {}, jobCard = {}) => {
+  const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
   if (skipBundle) {
     return 'READY_FOR_ASSIGNMENT';
   }
   return 'CUTTING_COMPLETED';
 };
 
-export const validateStatusTransition = (workflowSettings = {}, currentStatus, targetStatus) => {
-  const skipCutting = Boolean(workflowSettings?.skip_cutting);
-  const skipBundle = Boolean(workflowSettings?.skip_bundle);
+export const validateStatusTransition = (workflowSettings = {}, jobCard = {}, targetStatus) => {
+  const skipCutting = Boolean(jobCard?.skip_cutting ?? workflowSettings?.skip_cutting);
+  const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
 
   if (skipCutting && (targetStatus === 'READY_FOR_CUTTING' || targetStatus === 'CUTTING_IN_PROGRESS')) {
     return {
       allowed: false,
-      message: 'Cutting stage is skipped for your company workflow configuration.',
+      message: 'Cutting stage is skipped for this Job Card.',
     };
   }
 
   if (skipBundle && targetStatus === 'READY_FOR_BUNDLE') {
     return {
       allowed: false,
-      message: 'Bundle stage is skipped for your company workflow configuration.',
+      message: 'Bundle stage is skipped for this Job Card.',
     };
   }
 
@@ -54,7 +57,7 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
   const skipBundle = Boolean(jobCard?.skip_bundle ?? workflowSettings?.skip_bundle);
   const status = jobCard.status;
 
-  if (status === 'CREATED') {
+  if (status === 'CREATED' || status === 'READY_FOR_CUTTING') {
     if (skipCutting && skipBundle) {
       return {
         label: 'Assign Work',
@@ -65,8 +68,8 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
     }
     if (skipCutting) {
       return {
-        label: 'Send to Bundle',
-        actionKey: 'SEND_TO_BUNDLE',
+        label: 'Create Bundle',
+        actionKey: 'OPEN_BUNDLE',
         targetPath: `/job-cards/${jobCard.id}`,
         allowed: true,
       };
@@ -89,8 +92,8 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
       };
     }
     return {
-      label: 'Send to Bundle',
-      actionKey: 'SEND_TO_BUNDLE',
+      label: 'Create Bundle',
+      actionKey: 'OPEN_BUNDLE',
       targetPath: `/job-cards/${jobCard.id}`,
       allowed: true,
     };
@@ -101,6 +104,15 @@ export const getJobCardPrimaryAction = (workflowSettings = {}, jobCard = {}) => 
       label: 'Assign Work',
       actionKey: 'ASSIGN_WORK',
       targetPath: `/job-cards/${jobCard.id}`,
+      allowed: true,
+    };
+  }
+
+  if (status === 'CUTTING_IN_PROGRESS') {
+    return {
+      label: 'Cutting Queue',
+      actionKey: 'VIEW_CUTTING',
+      targetPath: `/cutting/${jobCard.id}`,
       allowed: true,
     };
   }

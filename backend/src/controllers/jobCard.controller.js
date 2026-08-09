@@ -3,7 +3,7 @@ import { ApiResponse } from '../utils/apiResponse.js';
 import { createSystemNotification } from '../utils/notificationHelper.js';
 import { getSetting } from '../utils/configHelper.js';
 import { getCompanyFilter, assertCompanyOwnership } from '../middleware/tenancy.middleware.js';
-import { getInitialJobCardStatus } from '../utils/workflowEngine.js';
+import { getInitialJobCardStage } from '../utils/workflowEngine.js';
 
 export const getJobCards = async (req, res, next) => {
   try {
@@ -161,7 +161,7 @@ export const createJobCard = async (req, res, next) => {
 
     const skipCutting = Boolean(workflowSettings?.skip_cutting);
     const skipBundle = Boolean(workflowSettings?.skip_bundle);
-    const initialStatus = getInitialJobCardStatus(workflowSettings);
+    const initialStatus = getInitialJobCardStage(workflowSettings);
 
     const newJobCard = await prisma.jobCard.create({
       data: {
