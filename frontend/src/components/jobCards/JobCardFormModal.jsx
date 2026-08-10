@@ -455,18 +455,18 @@ export const JobCardFormModal = ({
 
       {/* ─── BOTTOM SHEET – ADD/EDIT COLOR ─── */}
       {colorSheetOpen && (
-        <div className="fixed inset-0 bg-[#0B132B]/60 backdrop-blur-xs z-50 flex flex-col justify-end">
-          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
+        <div className="fixed inset-0 bg-[#0B132B]/60 backdrop-blur-xs z-50 flex flex-col justify-end sm:justify-center sm:p-4">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md mx-auto max-h-[95dvh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
             {/* Sheet Header */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <span className="font-extrabold text-sm text-slate-800">
                 {sheetMode === 'add' ? 'Add Color Breakdown' : 'Edit Color Card'}
               </span>
-              <button type="button" onClick={() => setColorSheetOpen(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+              <button type="button" onClick={() => setColorSheetOpen(false)} className="text-slate-400 hover:text-slate-700 w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200/50">✕</button>
             </div>
 
             {/* Sheet Scroll Body */}
-            <div className="p-5 space-y-4 overflow-y-auto">
+            <div className="p-4 sm:p-5 space-y-5 overflow-y-auto flex-1">
               <div>
                 <label className="text-[11px] font-bold text-slate-500 block mb-1">Color Name *</label>
                 <input
@@ -474,54 +474,55 @@ export const JobCardFormModal = ({
                   placeholder="e.g. Red, Royal Blue, Jet Black"
                   value={sheetColorName}
                   onChange={e => setSheetColorName(e.target.value)}
-                  className="w-full h-11 px-3.5 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none bg-white"
+                  className="w-full h-12 px-3.5 border border-slate-200 rounded-xl text-sm sm:text-xs font-bold text-slate-900 focus:border-[#384CF0] outline-none bg-white"
                 />
               </div>
 
               <div>
                 <label className="text-[11px] font-bold text-slate-500 block mb-2">Sizes Quantity Breakdown</label>
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {SIZES.map((sz) => {
-                    const val = sheetSizes[sz] || 0;
+                    const val = sheetSizes[sz] !== undefined ? sheetSizes[sz] : 0;
                     return (
-                      <div key={sz} className="flex items-center justify-between p-2 bg-slate-50/50 rounded-xl border border-slate-100">
-                        <span className="text-xs font-extrabold text-slate-700">{sz}</span>
-                        <div className="flex items-center gap-1">
+                      <div key={sz} className="flex items-center justify-between p-2 bg-slate-50/50 rounded-xl border border-slate-100 gap-2">
+                        <span className="text-xs sm:text-sm font-extrabold text-slate-700 shrink-0 w-8 sm:w-10 truncate">{sz}</span>
+                        <div className="flex items-center gap-1 sm:gap-1.5 flex-1 justify-end max-w-full">
                           <button
                             type="button"
                             onClick={() => handleStepSize(sz, -5)}
-                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                            className="w-10 sm:w-11 h-11 sm:h-10 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600 shrink-0 active:bg-slate-200"
                           >
                             -5
                           </button>
                           <button
                             type="button"
                             onClick={() => handleStepSize(sz, -1)}
-                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                            className="w-10 sm:w-11 h-11 sm:h-10 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600 shrink-0 active:bg-slate-200"
                           >
                             -
                           </button>
                           <input
                             type="number"
                             min="0"
-                            value={val || ''}
+                            value={val.toString()}
                             onChange={(e) => {
                               const v = parseInt(e.target.value, 10);
                               setSheetSizes({ ...sheetSizes, [sz]: isNaN(v) ? 0 : v });
                             }}
-                            className="w-12 h-8 text-center bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-800"
+                            onFocus={(e) => e.target.select()}
+                            className="w-12 sm:w-14 h-11 sm:h-10 text-center bg-white border border-slate-200 rounded-lg text-sm sm:text-xs font-extrabold text-slate-800 shrink-0 focus:border-[#384CF0] outline-none"
                           />
                           <button
                             type="button"
                             onClick={() => handleStepSize(sz, 1)}
-                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                            className="w-10 sm:w-11 h-11 sm:h-10 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600 shrink-0 active:bg-slate-200"
                           >
                             +
                           </button>
                           <button
                             type="button"
                             onClick={() => handleStepSize(sz, 5)}
-                            className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600"
+                            className="w-10 sm:w-11 h-11 sm:h-10 rounded-lg bg-white border border-slate-200 text-xs font-bold flex items-center justify-center hover:bg-slate-100 text-slate-600 shrink-0 active:bg-slate-200"
                           >
                             +5
                           </button>
@@ -534,18 +535,18 @@ export const JobCardFormModal = ({
             </div>
 
             {/* Sheet Footer */}
-            <div className="p-4 border-t border-slate-100 flex items-center gap-3">
+            <div className="p-4 border-t border-slate-100 flex items-center gap-3 shrink-0 pb-[max(1rem,env(safe-area-inset-bottom))] bg-white">
               <button
                 type="button"
                 onClick={() => setColorSheetOpen(false)}
-                className="flex-1 h-11 border border-slate-200 rounded-xl text-xs font-bold text-slate-500"
+                className="flex-1 h-12 border border-slate-200 rounded-xl text-sm sm:text-xs font-bold text-slate-500 active:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={saveColorSheet}
-                className="flex-1 h-11 bg-[#384CF0] text-white rounded-xl text-xs font-bold shadow-md"
+                className="flex-1 h-12 bg-[#384CF0] hover:bg-[#2a3bdb] text-white rounded-xl text-sm sm:text-xs font-bold shadow-md active:scale-[0.98] transition-transform"
               >
                 Save
               </button>
