@@ -21,15 +21,15 @@ export const TimelineTab = ({ timeline = [] }) => {
               <div key={evt.id} className="relative">
                 <div className="absolute -left-[27px] top-1 w-3.5 h-3.5 rounded-full bg-brand-600 ring-4 ring-white" />
                 <div className="bg-slate-50 border border-slate-200/70 p-3.5 rounded-2xl space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-extrabold text-xs text-factory-navy">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="font-extrabold text-xs text-factory-navy break-words">
                       {evt.title}
                     </span>
-                    <span className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
+                    <span className="text-[10px] font-bold text-brand-600 bg-brand-50 px-2 py-0.5 rounded border border-brand-200 self-start sm:self-auto shrink-0">
                       {evt.badge}
                     </span>
                   </div>
-                  <p className="text-xs text-factory-muted">{evt.description}</p>
+                  <p className="text-xs text-factory-muted break-words">{evt.description}</p>
                   <span className="text-[10px] text-slate-400 font-medium block">
                     {new Date(evt.timestamp).toLocaleString('en-GB', {
                       day: '2-digit',

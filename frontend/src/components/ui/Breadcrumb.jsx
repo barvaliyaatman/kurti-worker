@@ -18,7 +18,7 @@ export const Breadcrumb = ({ items = [] }) => {
   ];
 
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-factory-muted mb-4 overflow-x-auto select-none py-1">
+    <nav className="flex flex-wrap items-center gap-1.5 text-xs text-factory-muted mb-4 select-none py-1 w-full overflow-hidden">
       <Link to={ROUTES.HOME} className="hover:text-brand-600 flex items-center gap-1 font-medium shrink-0">
         <Home className="w-3.5 h-3.5" />
       </Link>
@@ -28,11 +28,11 @@ export const Breadcrumb = ({ items = [] }) => {
           <React.Fragment key={idx}>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
             {isLast ? (
-              <span className="font-bold text-factory-navy truncate max-w-[150px]">
+              <span className="font-bold text-factory-navy truncate max-w-[120px] sm:max-w-[200px] shrink-0">
                 {item.label}
               </span>
             ) : (
-              <Link to={item.path} className="hover:text-brand-600 font-medium shrink-0">
+              <Link to={item.path} className="hover:text-brand-600 font-medium shrink-0 truncate max-w-[80px] sm:max-w-none">
                 {item.label}
               </Link>
             )}

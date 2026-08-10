@@ -117,11 +117,11 @@ export const AddPaymentModal = ({
           icon={Hash}
         />
 
-        <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isLoading}>
+          <Button type="submit" variant="primary" className="w-full sm:w-auto" isLoading={isLoading}>
             Disburse Payment
           </Button>
         </div>

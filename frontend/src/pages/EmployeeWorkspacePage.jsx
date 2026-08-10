@@ -259,11 +259,11 @@ export const EmployeeWorkspacePage = () => {
           {/* Employee Header Profile Card */}
           <Card className="p-5 space-y-4 border border-factory-border">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                 <Avatar name={employee.employee_name} size="lg" />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-extrabold text-factory-navy">
+                <div className="flex flex-col">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-factory-navy break-words">
                       {employee.employee_name}
                     </h2>
                     <StatusBadge
@@ -272,13 +272,13 @@ export const EmployeeWorkspacePage = () => {
                     />
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3 mt-1 text-xs">
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11px] sm:text-xs">
                     <span className="font-bold text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded border border-brand-200">
                       {employee.employee_code}
                     </span>
-                    <span className="text-factory-muted">•</span>
+                    <span className="hidden sm:inline text-factory-muted">•</span>
                     <span className="font-semibold text-factory-navy">Phone: {employee.phone}</span>
-                    <span className="text-factory-muted">•</span>
+                    <span className="hidden sm:inline text-factory-muted">•</span>
                     <span className="font-semibold text-factory-navy">
                       Joined: {employee.joining_date ? new Date(employee.joining_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A'}
                     </span>
@@ -359,73 +359,73 @@ export const EmployeeWorkspacePage = () => {
           {/* Sticky Summary Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
                 Active Bundles
               </span>
-              <span className="text-xl font-extrabold text-brand-600 block">
+              <span className="text-lg sm:text-xl font-extrabold text-brand-600 block break-words">
                 {summary.active_bundles_count || 0}
               </span>
             </div>
 
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
                 Completed Bundles
               </span>
-              <span className="text-xl font-extrabold text-emerald-600 block">
+              <span className="text-lg sm:text-xl font-extrabold text-emerald-600 block break-words">
                 {summary.completed_bundles_count || 0}
               </span>
             </div>
 
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
                 Pending Pieces
               </span>
-              <span className="text-xl font-extrabold text-amber-700 block">
+              <span className="text-lg sm:text-xl font-extrabold text-amber-700 block break-words">
                 {summary.pending_pieces || 0} Pcs
               </span>
             </div>
 
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
                 Today's Completed
               </span>
-              <span className="text-xl font-extrabold text-emerald-700 block">
+              <span className="text-lg sm:text-xl font-extrabold text-emerald-700 block break-words">
                 {summary.today_completed_pieces || 0} Pcs
               </span>
             </div>
 
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
                 This Month Completed
               </span>
-              <span className="text-xl font-extrabold text-emerald-800 block">
+              <span className="text-lg sm:text-xl font-extrabold text-emerald-800 block break-words">
                 {summary.month_completed_pieces || 0} Pcs
               </span>
             </div>
 
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
-                Gross Earned Salary
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
+                Gross Earned
               </span>
-              <span className="text-xl font-extrabold text-emerald-600 block">
+              <span className="text-base sm:text-lg lg:text-xl font-extrabold text-emerald-600 block break-words">
                 ₹{(summary.gross_salary || 0).toFixed(2)}
               </span>
             </div>
 
             <div className="p-3.5 bg-white border border-slate-200/90 rounded-2xl space-y-1 shadow-2xs">
-              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block">
-                Advance Balance
+              <span className="text-[11px] font-bold text-factory-muted uppercase tracking-wider block break-words">
+                Advance Bal
               </span>
-              <span className="text-xl font-extrabold text-amber-700 block">
+              <span className="text-base sm:text-lg lg:text-xl font-extrabold text-amber-700 block break-words">
                 ₹{(summary.advance_balance || 0).toFixed(2)}
               </span>
             </div>
 
             <div className="p-3.5 bg-brand-50 border border-brand-200 rounded-2xl space-y-1 shadow-2xs col-span-2 sm:col-span-1">
-              <span className="text-[11px] font-bold text-brand-900 uppercase tracking-wider block">
+              <span className="text-[11px] font-bold text-brand-900 uppercase tracking-wider block break-words">
                 Net Pending Payable
               </span>
-              <span className="text-xl font-extrabold text-brand-600 block">
+              <span className="text-base sm:text-lg lg:text-xl font-extrabold text-brand-600 block break-words">
                 ₹{(summary.net_payable || 0).toFixed(2)}
               </span>
             </div>

@@ -125,11 +125,11 @@ export const UpdateProgressModal = ({
         />
 
         {/* Actions */}
-        <div className="pt-2 flex items-center justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2">
+          <Button type="button" variant="ghost" className="w-full sm:w-auto" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" isLoading={isLoading}>
+          <Button type="submit" variant="primary" className="w-full sm:w-auto" isLoading={isLoading}>
             Update Progress
           </Button>
         </div>
