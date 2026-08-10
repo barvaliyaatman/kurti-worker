@@ -59,20 +59,10 @@ export const AssignmentModal = ({
       return;
     }
 
-    if (!assignedSets || numAssigned <= 0) {
-      setFormError('Please enter a valid assigned sets quantity greater than zero.');
-      return;
-    }
-
-    if (numAssigned > remainingSets) {
-      setFormError(`Assigned quantity (${numAssigned}) cannot exceed remaining bundle sets (${remainingSets}).`);
-      return;
-    }
-
     onSubmit({
       bundle_id: bundle.id,
       employee_id: selectedEmployeeId,
-      assigned_sets: numAssigned,
+      assigned_sets: bundle.total_sets,
       remarks: remarks.trim() || null,
     });
   };
@@ -153,31 +143,21 @@ export const AssignmentModal = ({
           </div>
         )}
 
-        {/* Quantity Input */}
-        <Input
-          label={`Assigned Sets Quantity (Max: ${remainingSets} Sets)`}
-          type="number"
-          min="1"
-          max={remainingSets}
-          value={assignedSets}
-          onChange={(e) => setAssignedSets(e.target.value)}
-          placeholder={`Enter quantity (e.g. ${remainingSets})`}
-          required
-        />
-
         {/* Projected Calculation */}
-        {numAssigned > 0 && numAssigned <= remainingSets && (
-          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-factory-muted font-medium">Job Card Stitching Rate:</span>
-              <span className="font-bold text-factory-navy">₹{stitchingRate.toFixed(2)} / Set</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-factory-muted font-medium">Estimated Worker Piece Earnings:</span>
-              <span className="font-black text-emerald-600 text-sm">₹{potentialEarnings}</span>
-            </div>
+        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-factory-muted font-medium">Bundle Quantity:</span>
+            <span className="font-bold text-factory-navy">{bundle.total_sets} Sets</span>
           </div>
-        )}
+          <div className="flex items-center justify-between">
+            <span className="text-factory-muted font-medium">Job Card Stitching Rate:</span>
+            <span className="font-bold text-factory-navy">₹{stitchingRate.toFixed(2)} / Set</span>
+          </div>
+          <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200">
+            <span className="text-factory-muted font-bold">Total Potential Earnings:</span>
+            <span className="font-black text-emerald-600 text-sm">₹{(bundle.total_sets * stitchingRate).toFixed(2)}</span>
+          </div>
+        </div>
 
         <Input
           label="Assignment Remarks / Special Instructions"

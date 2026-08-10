@@ -115,13 +115,18 @@ export const getAssignmentById = async (req, res, next) => {
 
 export const createAssignment = async (req, res, next) => {
   try {
-    const { bundle_id, employee_id, assigned_sets, remarks } = req.body;
-
-    const assignedQty = parseInt(assigned_sets, 10);
+    const { bundle_id, employee_id, remarks } = req.body;
 
     const bundle = await prisma.bundle.findUnique({
       where: { id: bundle_id },
-      include: { job_card: true },
+      include: { 
+        job_card: true,
+        assignments: {
+          where: {
+            status: { not: 'CANCELLED' }
+          }
+        }
+      },
     });
 
     if (!bundle) {
@@ -132,14 +137,15 @@ export const createAssignment = async (req, res, next) => {
       return ApiResponse.error({ res, statusCode: 403, message: 'Bundle does not belong to your company.' });
     }
 
-    const remainingSets = bundle.total_sets - bundle.assigned_sets;
-    if (assignedQty > remainingSets) {
+    if (bundle.assignments && bundle.assignments.length > 0) {
       return ApiResponse.error({
         res,
         statusCode: 400,
-        message: `Assigned quantity (${assignedQty} sets) exceeds remaining bundle sets (${remainingSets} sets available).`,
+        message: 'Bundle is already assigned to a worker.',
       });
     }
+
+    const assignedQty = bundle.total_sets;
 
     const employee = await prisma.employee.findUnique({
       where: { id: employee_id },
@@ -151,6 +157,10 @@ export const createAssignment = async (req, res, next) => {
         statusCode: 404,
         message: 'Employee not found.',
       });
+    }
+
+    if (!assertCompanyOwnership(employee, req.user)) {
+      return ApiResponse.error({ res, statusCode: 403, message: 'Employee does not belong to your company.' });
     }
 
     if (employee.status !== 'ACTIVE') {

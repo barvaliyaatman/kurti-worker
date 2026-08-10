@@ -423,9 +423,25 @@ export const JobCardAssignmentWorkspacePage = () => {
                           <span className="text-factory-muted font-medium">Total Quantity:</span>
                           <span className="font-extrabold text-factory-navy">{bnd.total_sets} Sets</span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-2">
                           <span className="text-factory-muted font-medium">Available to Assign:</span>
                           <span className="font-extrabold text-emerald-600">{remaining} Sets</span>
+                        </div>
+                        
+                        <div className="pt-1.5 border-t border-slate-200/60 pb-1.5">
+                          <span className="text-factory-muted font-bold uppercase block mb-1">Components:</span>
+                          <div className="grid grid-cols-2 gap-1">
+                            {['Top', 'Pant', 'Top Aster', 'Pant Aster'].map(comp => {
+                              const jobCardComponents = (jobCard?.components || '').split(',').map(c => c.trim());
+                              const hasComp = jobCardComponents.includes(comp);
+                              return (
+                                <div key={comp} className="flex items-center gap-1">
+                                  {hasComp ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Ban className="w-3.5 h-3.5 text-slate-400" />}
+                                  <span className={hasComp ? 'text-factory-navy font-medium' : 'text-slate-400 line-through text-[10px]'}>{comp}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
                         </div>
 
                         {activeAssignment && (
@@ -437,16 +453,29 @@ export const JobCardAssignmentWorkspacePage = () => {
                       </div>
 
                       {canManage && !isCompleted && (
-                        <Button
-                          variant={isFullyAssigned ? 'outline' : 'primary'}
-                          size="sm"
-                          className="w-full"
-                          icon={UserCheck}
-                          disabled={isFullyAssigned}
-                          onClick={() => handleOpenAssignModal(bnd)}
-                        >
-                          {isFullyAssigned ? 'Fully Assigned' : 'Assign Worker'}
-                        </Button>
+                        <>
+                          {isFullyAssigned && activeAssignment ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                              icon={Eye}
+                              onClick={() => handleOpenDetailsDrawer(activeAssignment)}
+                            >
+                              View Assignment
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="w-full"
+                              icon={UserCheck}
+                              onClick={() => handleOpenAssignModal(bnd)}
+                            >
+                              Assign Worker
+                            </Button>
+                          )}
+                        </>
                       )}
                     </Card>
                   );
