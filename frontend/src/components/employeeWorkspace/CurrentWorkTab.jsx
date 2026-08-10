@@ -72,7 +72,7 @@ export const CurrentWorkTab = ({
                       <TableCell className="font-extrabold text-emerald-600">
                         {asgn.completed_sets} Sets
                       </TableCell>
-                      <TableCell className="font-extrabold text-amber-700">
+                      <TableCell className="font-extrabold text-amber-700 bg-amber-50 rounded px-2">
                         {remaining} Sets
                       </TableCell>
                       <TableCell className="font-bold text-slate-700">
@@ -144,9 +144,9 @@ export const CurrentWorkTab = ({
                       </div>
                       <div className="flex items-center justify-between text-[10px] pt-0.5">
                         <span className="font-medium text-emerald-600">
-                          {asgn.completed_sets} / {asgn.assigned_sets} Completed
+                          {asgn.completed_sets} Completed
                         </span>
-                        <span className="font-medium text-amber-600">
+                        <span className="font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
                           Remaining: {remaining}
                         </span>
                       </div>

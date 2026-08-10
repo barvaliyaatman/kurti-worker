@@ -155,19 +155,33 @@ export const JobCardAssignmentWorkspacePage = () => {
 
   // Client Filter Bundles
   const filteredBundles = allBundles.filter((bnd) => {
+    // A bundle's remaining quantity (unassigned)
+    const unassignedQty = Math.max(0, bnd.total_sets - (bnd.assigned_sets || 0));
+    
+    // Total assigned and completed sets across all active assignments
+    const activeAssignments = (bnd.assignments || []).filter(a => a.status !== 'CANCELLED');
+    const totalAssigned = activeAssignments.reduce((acc, a) => acc + a.assigned_sets, 0);
+    const totalCompleted = activeAssignments.reduce((acc, a) => acc + a.completed_sets, 0);
+    
+    // Active assigned work is anything assigned that is NOT yet completed
+    const activeAssignedQty = Math.max(0, totalAssigned - totalCompleted);
+    
+    // It's fully completed if total completed is >= total sets
+    const isFullyCompleted = totalCompleted >= bnd.total_sets || bnd.status === 'COMPLETED';
+    
     let matchesStatus = true;
     if (statusFilter === 'READY_FOR_ASSIGNMENT') {
-      matchesStatus = bnd.assigned_sets < bnd.total_sets;
+      matchesStatus = unassignedQty > 0;
     } else if (statusFilter === 'IN_ASSIGNMENT') {
-      matchesStatus = bnd.assigned_sets > 0 && bnd.completed_sets < bnd.total_sets;
+      matchesStatus = activeAssignedQty > 0;
     } else if (statusFilter === 'COMPLETED') {
-      matchesStatus = bnd.completed_sets >= bnd.total_sets || bnd.status === 'COMPLETED';
+      matchesStatus = isFullyCompleted;
     }
 
     let matchesSearch = true;
     if (search.trim()) {
       const term = search.trim().toLowerCase();
-      const assignedWorkerNames = (bnd.assignments || []).map((a) => a.employee?.employee_name?.toLowerCase() || '');
+      const assignedWorkerNames = activeAssignments.map((a) => a.employee?.employee_name?.toLowerCase() || '');
       matchesSearch =
         bnd.bundle_number.toLowerCase().includes(term) ||
         bnd.color.toLowerCase().includes(term) ||
@@ -400,13 +414,17 @@ export const JobCardAssignmentWorkspacePage = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredBundles.map((bnd) => {
-                  const remaining = bnd.total_sets - (bnd.assigned_sets || 0);
-                  const isFullyAssigned = remaining === 0;
-                  const isCompleted = bnd.status === 'COMPLETED' || bnd.completed_sets >= bnd.total_sets;
+                  const unassignedQty = Math.max(0, bnd.total_sets - (bnd.assigned_sets || 0));
+                  const isFullyAssigned = unassignedQty === 0;
+                  
+                  const activeAssignmentsAll = (bnd.assignments || []).filter(a => a.status !== 'CANCELLED');
+                  const totalCompleted = activeAssignmentsAll.reduce((acc, a) => acc + a.completed_sets, 0);
+                  const isCompleted = bnd.status === 'COMPLETED' || totalCompleted >= bnd.total_sets;
 
-                  const activeAssignment = bnd.assignments && bnd.assignments.length > 0
-                    ? bnd.assignments[0]
-                    : null;
+                  // Find the active assignment that hasn't been fully completed
+                  const activeAssignment = activeAssignmentsAll.find(a => 
+                    (a.assigned_sets - a.completed_sets) > 0 && a.status !== 'COMPLETED'
+                  ) || (isCompleted ? activeAssignmentsAll[0] : null);
 
                   return (
                     <Card
@@ -446,7 +464,7 @@ export const JobCardAssignmentWorkspacePage = () => {
                         {!activeAssignment && (
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-factory-muted font-medium">Available to Assign:</span>
-                            <span className="font-extrabold text-emerald-600">{remaining} Sets</span>
+                            <span className="font-extrabold text-emerald-600">{unassignedQty} Sets</span>
                           </div>
                         )}
                         
@@ -478,13 +496,13 @@ export const JobCardAssignmentWorkspacePage = () => {
                               <div className="flex items-center justify-between text-[10px] font-bold">
                                 <span className="text-factory-muted">Progress</span>
                                 <span className="text-brand-600">
-                                  {Math.round((activeAssignment.completed_sets / activeAssignment.assigned_sets) * 100)}%
+                                  {Math.round((activeAssignment.completed_sets / activeAssignment.assigned_sets) * 100) || 0}%
                                 </span>
                               </div>
-                              <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                              <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
                                 <div
                                   className="h-full bg-brand-500 transition-all duration-300"
-                                  style={{ width: `${(activeAssignment.completed_sets / activeAssignment.assigned_sets) * 100}%` }}
+                                  style={{ width: `${Math.round((activeAssignment.completed_sets / activeAssignment.assigned_sets) * 100) || 0}%` }}
                                 />
                               </div>
                               <div className="flex items-center justify-between text-[10px] pt-0.5">
@@ -492,7 +510,7 @@ export const JobCardAssignmentWorkspacePage = () => {
                                   {activeAssignment.completed_sets} / {activeAssignment.assigned_sets} Completed
                                 </span>
                                 <span className="font-medium text-amber-600">
-                                  Remaining: {activeAssignment.assigned_sets - activeAssignment.completed_sets}
+                                  Remaining: {Math.max(0, activeAssignment.assigned_sets - activeAssignment.completed_sets)}
                                 </span>
                               </div>
                             </div>
@@ -502,7 +520,7 @@ export const JobCardAssignmentWorkspacePage = () => {
 
                       {canManage && !isCompleted && (
                         <>
-                          {isFullyAssigned && activeAssignment ? (
+                          {activeAssignment ? (
                             <div className="flex flex-col gap-2">
                                {activeAssignment.status === 'ASSIGNED' && (
                                  <Button

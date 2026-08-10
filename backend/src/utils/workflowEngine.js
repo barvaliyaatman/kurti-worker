@@ -75,8 +75,8 @@ export const getJobCardProductionState = (jobCard = {}, workflowSettings = {}) =
   const bundles = jobCard.bundles || [];
 
   const totalBundles = bundles.length;
-  const assignedBundles = bundles.filter((b) => b.assigned_sets > 0).length;
   const completedBundles = bundles.filter((b) => b.status === 'COMPLETED' || b.completed_sets >= b.total_sets).length;
+  const assignedBundles = bundles.filter((b) => b.assigned_sets > (b.completed_sets || 0) && b.status !== 'COMPLETED').length;
   const pendingBundles = bundles.filter((b) => b.assigned_sets < b.total_sets).length;
 
   // Determine actual production stage
