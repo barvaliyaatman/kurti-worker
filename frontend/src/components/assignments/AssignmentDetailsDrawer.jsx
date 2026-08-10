@@ -105,6 +105,56 @@ export const AssignmentDetailsDrawer = ({
           </div>
         </div>
 
+        {/* Bundle & Job Card Details */}
+        <div className="p-4 bg-white border border-slate-200/80 rounded-2xl space-y-2 text-xs text-factory-navy">
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-factory-muted">Job Card No:</span>
+            <span className="font-bold">{bundle?.job_card?.job_card_number || '—'}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-factory-muted">Design:</span>
+            <span className="font-bold">{bundle?.job_card?.design_code || '—'}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-factory-muted">Bundle No:</span>
+            <span className="font-bold">{bundle?.bundle_number || '—'}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-factory-muted">Color / Size:</span>
+            <span className="font-bold">{bundle?.color || '—'} / {bundle?.size || '—'}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-factory-muted">Assigned Qty:</span>
+            <span className="font-bold">{assigned_sets}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-1">
+            <span className="text-factory-muted">Completed Qty:</span>
+            <span className="font-bold text-emerald-600">{completed_sets}</span>
+          </div>
+          <div className="flex justify-between pb-1">
+            <span className="text-factory-muted">Remaining Qty:</span>
+            <span className="font-bold text-amber-600">{assigned_sets - completed_sets}</span>
+          </div>
+        </div>
+
+        {/* Timestamps */}
+        {(assignment.started_at || assignment.completed_at) && (
+          <div className="p-4 bg-white border border-slate-200/80 rounded-2xl space-y-2 text-xs">
+            {assignment.started_at && (
+              <div className="flex justify-between pb-1">
+                <span className="text-factory-muted flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Started At:</span>
+                <span className="font-bold">{new Date(assignment.started_at).toLocaleString('en-GB')}</span>
+              </div>
+            )}
+            {assignment.completed_at && (
+              <div className="flex justify-between pb-1 border-t border-slate-100 pt-2">
+                <span className="text-factory-muted flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Completed At:</span>
+                <span className="font-bold">{new Date(assignment.completed_at).toLocaleString('en-GB')}</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Remarks */}
         {remarks && (
           <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1 text-xs">

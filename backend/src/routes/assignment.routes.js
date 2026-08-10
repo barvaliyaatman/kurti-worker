@@ -7,6 +7,7 @@ import {
   updateProgress,
   completeAssignment,
   cancelAssignment,
+  startAssignment,
 } from '../controllers/assignment.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authorizeRoles } from '../middleware/role.middleware.js';
@@ -100,6 +101,17 @@ router.delete(
   '/:id',
   authorizeRoles('OWNER', 'MANAGER'),
   cancelAssignment
+);
+
+/**
+ * @route PATCH /api/assignments/:id/start
+ * @desc Start work on assignment
+ * @access Owner, Manager
+ */
+router.patch(
+  '/:id/start',
+  authorizeRoles('OWNER', 'MANAGER'),
+  startAssignment
 );
 
 router.patch(

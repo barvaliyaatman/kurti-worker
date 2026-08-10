@@ -95,7 +95,7 @@ export const UpdateProgressModal = ({
 
         {/* Input Completed Quantity */}
         <Input
-          label={`Completed Quantity (0 to ${assigned_sets} Sets)`}
+          label={`Total Completed Quantity (0 to ${assigned_sets} Sets)`}
           type="number"
           min="0"
           max={assigned_sets}

@@ -42,8 +42,16 @@ export const getJobCardsForAssignment = async (req, res, next) => {
       const completedBundles = state.completedBundles;
       const pendingBundles = state.pendingBundles;
 
-      const progressPercentage = totalBundles > 0
-        ? Math.round((completedBundles / totalBundles) * 100)
+      let totalQuantity = 0;
+      let totalCompletedQuantity = 0;
+      
+      jc.bundles.forEach(b => {
+        totalQuantity += b.total_sets;
+        totalCompletedQuantity += b.completed_sets;
+      });
+
+      const progressPercentage = totalQuantity > 0
+        ? Math.round((totalCompletedQuantity / totalQuantity) * 100)
         : 0;
 
       let assignmentStatus = state.currentStage;
@@ -171,8 +179,16 @@ export const getJobCardBundlesWorkspace = async (req, res, next) => {
     const completedBundles = jobCard.bundles.filter((b) => b.status === 'COMPLETED' || b.completed_sets >= b.total_sets).length;
     const pendingBundles = jobCard.bundles.filter((b) => b.assigned_sets < b.total_sets).length;
 
-    const progressPercentage = totalBundles > 0
-      ? Math.round((completedBundles / totalBundles) * 100)
+    let totalQuantity = 0;
+    let totalCompletedQuantity = 0;
+    
+    jobCard.bundles.forEach(b => {
+      totalQuantity += b.total_sets;
+      totalCompletedQuantity += b.completed_sets;
+    });
+
+    const progressPercentage = totalQuantity > 0
+      ? Math.round((totalCompletedQuantity / totalQuantity) * 100)
       : 0;
 
     return ApiResponse.success({

@@ -35,6 +35,11 @@ export const assignmentService = {
     const response = await api.delete(`/assignments/${id}`);
     return response.data;
   },
+
+  startAssignment: async (id) => {
+    const response = await api.patch(`/assignments/${id}/start`);
+    return response.data;
+  },
 };
 
 export default assignmentService;

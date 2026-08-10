@@ -304,6 +304,63 @@ export const updateAssignment = async (req, res, next) => {
   }
 };
 
+export const startAssignment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.assignment.findUnique({
+      where: { id },
+      include: { bundle: true },
+    });
+
+    if (!existing) {
+      return ApiResponse.error({
+        res,
+        statusCode: 404,
+        message: 'Assignment not found.',
+      });
+    }
+
+    if (existing.status !== 'ASSIGNED') {
+      return ApiResponse.error({
+        res,
+        statusCode: 400,
+        message: 'Only ASSIGNED bundles can be started.',
+      });
+    }
+
+    const updated = await prisma.assignment.update({
+      where: { id },
+      data: {
+        status: 'IN_PROGRESS',
+        started_at: new Date(),
+        history: {
+          create: {
+            action: 'IN_PROGRESS',
+            previous_sets: existing.completed_sets,
+            new_sets: existing.completed_sets,
+            performed_by: req.user?.full_name || 'Factory Manager',
+            notes: 'Work started.',
+          },
+        },
+      },
+      include: {
+        bundle: { include: { job_card: true } },
+        employee: true,
+      },
+    });
+
+    return ApiResponse.success({
+      res,
+      statusCode: 200,
+      message: 'Work started successfully.',
+      data: { assignment: updated },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const updateProgress = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -339,6 +396,7 @@ export const updateProgress = async (req, res, next) => {
       data: {
         completed_sets: completedQty,
         status: newStatus,
+        completed_at: isFullyDone ? new Date() : null,
         history: {
           create: {
             action: isFullyDone ? 'COMPLETED' : 'PROGRESS_UPDATED',
@@ -413,6 +471,7 @@ export const completeAssignment = async (req, res, next) => {
       data: {
         completed_sets: existing.assigned_sets,
         status: 'COMPLETED',
+        completed_at: new Date(),
         history: {
           create: {
             action: 'COMPLETED',

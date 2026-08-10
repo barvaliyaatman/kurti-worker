@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { 
-  ArrowLeft, 
-  Layers, 
-  Calendar, 
-  CheckCircle2, 
-  Clock, 
-  Package, 
-  UserCheck, 
+import {
+  ArrowLeft,
+  Layers,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  Package,
+  UserCheck,
   RefreshCw,
   Search,
   Filter,
@@ -140,6 +140,19 @@ export const JobCardAssignmentWorkspacePage = () => {
     },
   });
 
+  // Start Assignment Mutation
+  const startMutation = useMutation({
+    mutationFn: (asgnId) => assignmentService.startAssignment(asgnId),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries(['jobCardAssignmentWorkspace', id]);
+      queryClient.invalidateQueries(['assignmentQueue']);
+      toast.success(res?.message || 'Work started successfully!');
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Failed to start work');
+    },
+  });
+
   // Client Filter Bundles
   const filteredBundles = allBundles.filter((bnd) => {
     let matchesStatus = true;
@@ -265,15 +278,15 @@ export const JobCardAssignmentWorkspacePage = () => {
                       summary.completed_bundles === summary.total_bundles && summary.total_bundles > 0
                         ? 'completed'
                         : summary.assigned_bundles > 0
-                        ? 'warning'
-                        : 'active'
+                          ? 'warning'
+                          : 'active'
                     }
                     label={
                       summary.completed_bundles === summary.total_bundles && summary.total_bundles > 0
                         ? 'COMPLETED'
                         : summary.assigned_bundles > 0
-                        ? 'IN ASSIGNMENT'
-                        : 'READY FOR ASSIGNMENT'
+                          ? 'IN ASSIGNMENT'
+                          : 'READY FOR ASSIGNMENT'
                     }
                   />
                 </div>
@@ -356,11 +369,10 @@ export const JobCardAssignmentWorkspacePage = () => {
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-                      statusFilter === st
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${statusFilter === st
                         ? 'bg-brand-600 text-white shadow-xs'
                         : 'bg-slate-100 text-factory-navy hover:bg-slate-200'
-                    }`}
+                      }`}
                   >
                     {st === 'ALL' && 'All Bundles'}
                     {st === 'READY_FOR_ASSIGNMENT' && 'Ready For Assignment'}
@@ -412,10 +424,17 @@ export const JobCardAssignmentWorkspacePage = () => {
                           </span>
                         </div>
 
-                        <StatusBadge
-                          status={isCompleted ? 'completed' : bnd.assigned_sets > 0 ? 'warning' : 'active'}
-                          label={isCompleted ? 'Completed' : bnd.assigned_sets > 0 ? 'Assigned' : 'Ready'}
-                        />
+                        {activeAssignment ? (
+                          <StatusBadge
+                            status={activeAssignment.status === 'COMPLETED' ? 'completed' : activeAssignment.status === 'IN_PROGRESS' ? 'warning' : 'draft'}
+                            label={activeAssignment.status === 'COMPLETED' ? 'Completed' : activeAssignment.status === 'IN_PROGRESS' ? 'In Progress' : 'Assigned'}
+                          />
+                        ) : (
+                          <StatusBadge
+                            status={isCompleted ? 'completed' : bnd.assigned_sets > 0 ? 'warning' : 'active'}
+                            label={isCompleted ? 'Completed' : bnd.assigned_sets > 0 ? 'Assigned' : 'Ready'}
+                          />
+                        )}
                       </div>
 
                       <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5 text-xs">
@@ -423,10 +442,13 @@ export const JobCardAssignmentWorkspacePage = () => {
                           <span className="text-factory-muted font-medium">Total Quantity:</span>
                           <span className="font-extrabold text-factory-navy">{bnd.total_sets} Sets</span>
                         </div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-factory-muted font-medium">Available to Assign:</span>
-                          <span className="font-extrabold text-emerald-600">{remaining} Sets</span>
-                        </div>
+                        
+                        {!activeAssignment && (
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-factory-muted font-medium">Available to Assign:</span>
+                            <span className="font-extrabold text-emerald-600">{remaining} Sets</span>
+                          </div>
+                        )}
                         
                         <div className="pt-1.5 border-t border-slate-200/60 pb-1.5">
                           <span className="text-factory-muted font-bold uppercase block mb-1">Components:</span>
@@ -445,9 +467,35 @@ export const JobCardAssignmentWorkspacePage = () => {
                         </div>
 
                         {activeAssignment && (
-                          <div className="pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
-                            <span className="text-factory-muted">Assigned Worker:</span>
-                            <span className="font-bold text-brand-700">{activeAssignment.employee?.employee_name}</span>
+                          <div className="pt-2 border-t border-slate-200/60 space-y-2">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-factory-muted">Assigned Worker:</span>
+                              <span className="font-bold text-brand-700">{activeAssignment.employee?.employee_name}</span>
+                            </div>
+                            
+                            {/* Worker Progress */}
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-bold">
+                                <span className="text-factory-muted">Progress</span>
+                                <span className="text-brand-600">
+                                  {Math.round((activeAssignment.completed_sets / activeAssignment.assigned_sets) * 100)}%
+                                </span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
+                                <div
+                                  className="h-full bg-brand-500 transition-all duration-300"
+                                  style={{ width: `${(activeAssignment.completed_sets / activeAssignment.assigned_sets) * 100}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] pt-0.5">
+                                <span className="font-medium text-emerald-600">
+                                  {activeAssignment.completed_sets} / {activeAssignment.assigned_sets} Completed
+                                </span>
+                                <span className="font-medium text-amber-600">
+                                  Remaining: {activeAssignment.assigned_sets - activeAssignment.completed_sets}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -455,15 +503,42 @@ export const JobCardAssignmentWorkspacePage = () => {
                       {canManage && !isCompleted && (
                         <>
                           {isFullyAssigned && activeAssignment ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full"
-                              icon={Eye}
-                              onClick={() => handleOpenDetailsDrawer(activeAssignment)}
-                            >
-                              View Assignment
-                            </Button>
+                            <div className="flex flex-col gap-2">
+                               {activeAssignment.status === 'ASSIGNED' && (
+                                 <Button
+                                    variant="primary"
+                                    size="sm"
+                                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                    icon={Clock}
+                                    isLoading={startMutation.isPending}
+                                    onClick={() => startMutation.mutate(activeAssignment.id)}
+                                 >
+                                   Start Work
+                                 </Button>
+                               )}
+                               {activeAssignment.status === 'IN_PROGRESS' && (
+                                 <Button
+                                    variant="primary"
+                                    size="sm"
+                                    className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+                                    icon={Layers}
+                                    onClick={() => handleOpenProgressModal(activeAssignment)}
+                                 >
+                                   Update Progress
+                                 </Button>
+                               )}
+                               {activeAssignment.status !== 'ASSIGNED' && activeAssignment.status !== 'IN_PROGRESS' && (
+                                 <Button
+                                   variant="outline"
+                                   size="sm"
+                                   className="w-full"
+                                   icon={Eye}
+                                   onClick={() => handleOpenDetailsDrawer(activeAssignment)}
+                                 >
+                                   View Assignment
+                                 </Button>
+                               )}
+                            </div>
                           ) : (
                             <Button
                               variant="primary"
@@ -528,10 +603,10 @@ export const JobCardAssignmentWorkspacePage = () => {
                           {asgn.bundle?.color} ({asgn.bundle?.size})
                         </TableCell>
                         <TableCell className="font-extrabold text-factory-navy">
-                          {asgn.assigned_sets} Sets
+                          {asgn.assigned_sets} pcs
                         </TableCell>
                         <TableCell className="font-extrabold text-emerald-600">
-                          {asgn.completed_sets} Sets
+                          {asgn.completed_sets} pcs
                         </TableCell>
                         <TableCell className="font-bold text-emerald-700">
                           ₹{rate.toFixed(2)}/Pcs
